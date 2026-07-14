@@ -1,0 +1,1 @@
+- [Indoor wayfinding without beacons](indoor-wayfinding-dead-reckoning.md) — pedometer+compass dead-reckoning pattern for GPS-denied indoor nav prototypes on Expo.
