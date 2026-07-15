@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { getBuilding, getNode } from "@/lib/buildings";
+import { getNode, type Building, type BuildingNode } from "@/lib/buildings";
+import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { findShortestPath, buildRoute } from "@/lib/routing";
 import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
 import { useCameraStream } from "@/hooks/useCameraStream";
@@ -339,7 +340,8 @@ export default function Navigate() {
   });
   const { b, e, d } = params;
 
-  const building = getBuilding(b);
+  const { buildings, isLoading } = useBuildings();
+  const building = getBuildingIn(buildings, b);
   const entrance = building?.entrances.find((ent: any) => ent.nodeId === e);
   const destination = building ? getNode(building, d || "") : null;
 
@@ -349,6 +351,14 @@ export default function Navigate() {
     if (!path) return null;
     return buildRoute(building, path.nodeIds, path.edges);
   }, [building, e, d]);
+
+  if (isLoading && !building) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background safe-area-pt">
+        <p className="text-muted-foreground animate-pulse">Loading location...</p>
+      </div>
+    );
+  }
 
   if (!b || !e || !d || !building || !entrance || !destination || !route) {
     return (
@@ -380,8 +390,8 @@ function NavigateInner({
 }: {
   route: ReturnType<typeof buildRoute>;
   entranceFacingBearing: number;
-  building: NonNullable<ReturnType<typeof getBuilding>>;
-  destination: NonNullable<ReturnType<typeof getNode>>;
+  building: Building;
+  destination: BuildingNode;
   onExit: () => void;
 }) {
   const nav = useIndoorNavigation(route, entranceFacingBearing);

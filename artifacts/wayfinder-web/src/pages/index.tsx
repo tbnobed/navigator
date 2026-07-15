@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { buildings, getBuilding, findEntranceByQr } from "@/lib/buildings";
+import type { Building } from "@/lib/buildings";
+import { useBuildings, getBuildingIn, findEntranceIn } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/QrScanner";
@@ -11,7 +12,7 @@ import { MapPin, ArrowRight, Map as MapIcon, ChevronRight, ScanLine } from "luci
  * Accepts: a full app URL with ?b=&e= params, a WAYFINDER://building/entrance
  * value, or a short "building/entrance" (or bare building id) code.
  */
-function resolveEntranceCode(raw: string): { b: string; e: string } | { b: string } | null {
+function resolveEntranceCode(buildings: Building[], raw: string): { b: string; e: string } | { b: string } | null {
   const text = raw.trim();
   if (!text) return null;
 
@@ -26,17 +27,20 @@ function resolveEntranceCode(raw: string): { b: string; e: string } | { b: strin
   }
 
   // WAYFINDER://building/entrance QR value.
-  const byQr = findEntranceByQr(text) ?? findEntranceByQr(`WAYFINDER://${text.toLowerCase()}`);
+  const byQr =
+    findEntranceIn(buildings, text) ??
+    findEntranceIn(buildings, `WAYFINDER://${text.toLowerCase()}`);
   if (byQr) return { b: byQr.building.id, e: byQr.entrance.nodeId };
 
   // Bare building/site id — caller shows its entrance list.
-  if (getBuilding(text.toLowerCase())) return { b: text.toLowerCase() };
+  if (getBuildingIn(buildings, text.toLowerCase())) return { b: text.toLowerCase() };
 
   return null;
 }
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { buildings } = useBuildings();
   const [b, setB] = useState<string | null>(null);
   const [e, setE] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -51,7 +55,7 @@ export default function Home() {
   }, []);
 
   const applyResolved = useCallback(
-    (resolved: ReturnType<typeof resolveEntranceCode>) => {
+    (resolved: ReturnType<typeof resolveEntranceCode> | null) => {
       if (!resolved) return false;
       if ("e" in resolved) {
         setLocation(`/destination?b=${resolved.b}&e=${resolved.e}`);
@@ -68,20 +72,20 @@ export default function Home() {
   const handleScan = useCallback(
     (text: string) => {
       setScanning(false);
-      if (!applyResolved(resolveEntranceCode(text))) {
+      if (!applyResolved(resolveEntranceCode(buildings, text))) {
         setCodeError("That QR code isn't a Wayfinder entrance code.");
       }
     },
-    [applyResolved],
+    [applyResolved, buildings],
   );
 
   const handleCodeSubmit = () => {
-    if (!applyResolved(resolveEntranceCode(siteCode))) {
+    if (!applyResolved(resolveEntranceCode(buildings, siteCode))) {
       setCodeError("Unknown site code. Check the code printed on the poster.");
     }
   };
 
-  const building = getBuilding(b);
+  const building = getBuildingIn(buildings, b);
   const entrance = building?.entrances.find(ent => ent.nodeId === e);
 
   // If we have building and entrance from QR, greet them directly

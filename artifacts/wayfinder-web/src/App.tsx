@@ -7,6 +7,8 @@ import Home from '@/pages/index';
 import Destination from '@/pages/destination';
 import Navigate from '@/pages/navigate';
 import QRPosters from '@/pages/qr';
+import AdminHome from '@/pages/admin/index';
+import AdminEditor from '@/pages/admin/editor';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/destination" component={Destination} />
       <Route path="/navigate" component={Navigate} />
       <Route path="/qr" component={QRPosters} />
+      <Route path="/admin" component={AdminHome} />
+      <Route path="/admin/site/:id" component={AdminEditor} />
       <Route component={NotFound} />
     </Switch>
   );

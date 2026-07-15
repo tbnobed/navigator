@@ -1,26 +1,37 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { getBuilding, getPois, BuildingNode } from "@/lib/buildings";
+import { getPois, BuildingNode } from "@/lib/buildings";
+import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ChevronRight, Video } from "lucide-react";
 
 export default function Destination() {
   const [, setLocation] = useLocation();
-  const [b, setB] = useState<string | null>(null);
-  const [e, setE] = useState<string | null>(null);
-
-  useEffect(() => {
+  // Read query params synchronously so the first render already has them.
+  const [{ b, e }] = useState(() => {
     const search = new URLSearchParams(window.location.search);
-    setB(search.get("b"));
-    setE(search.get("e"));
-  }, []);
+    return { b: search.get("b"), e: search.get("e") };
+  });
 
-  const building = getBuilding(b);
+  const { buildings, isLoading } = useBuildings();
+  const building = getBuildingIn(buildings, b);
 
-  if (!b || !e || !building) {
+  if (isLoading && !building) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-background safe-area-pt">
         <p className="text-muted-foreground animate-pulse">Loading location...</p>
+      </div>
+    );
+  }
+
+  if (!b || !e || !building) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-6 text-center safe-area-pt">
+        <h1 className="text-2xl font-bold mb-2">Location not found</h1>
+        <p className="text-muted-foreground mb-8">
+          This site isn't available. Scan the entrance QR code again or enter your site code.
+        </p>
+        <Button onClick={() => setLocation("/")}>Start Over</Button>
       </div>
     );
   }

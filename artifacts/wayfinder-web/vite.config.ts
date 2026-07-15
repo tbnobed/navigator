@@ -72,6 +72,14 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    proxy: {
+      // Forward <BASE_PATH>api/* to the local admin/sites API server.
+      [`${basePath.replace(/\/$/, '')}/api`]: {
+        target: `http://localhost:${process.env.WAYFINDER_API_PORT || 8790}`,
+        changeOrigin: true,
+        rewrite: (p) => p.slice(basePath.replace(/\/$/, '').length),
+      },
+    },
   },
   preview: {
     port,

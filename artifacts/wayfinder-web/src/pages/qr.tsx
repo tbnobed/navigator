@@ -1,11 +1,12 @@
 import { useLocation } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
-import { buildings } from "@/lib/buildings";
+import { useBuildings } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft } from "lucide-react";
 
 export default function QRPosters() {
   const [, setLocation] = useLocation();
+  const { buildings } = useBuildings();
 
   const handlePrint = () => {
     window.print();

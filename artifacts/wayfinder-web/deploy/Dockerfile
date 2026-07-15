@@ -1,13 +1,13 @@
-# Wayfinder Web — static build served by nginx.
+# Wayfinder Web — frontend + admin/sites API in one Node container.
 #
 # Build from the MONOREPO ROOT (the app depends on pnpm workspace packages):
 #   docker build -f artifacts/wayfinder-web/deploy/Dockerfile -t wayfinder-web .
 #
-# Run:
-#   docker run -d -p 8080:80 --name wayfinder wayfinder-web
+# Run (ADMIN_PASSWORD is required):
+#   docker run -d -p 8080:3000 -e ADMIN_PASSWORD=change-me \
+#     -v wayfinder-data:/data --name wayfinder wayfinder-web
 
-# ---- Stage 1: build ----
-FROM node:22-alpine AS build
+FROM node:22-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -26,10 +26,12 @@ ENV BASE_PATH=/
 ENV PORT=3000
 RUN pnpm --filter @workspace/wayfinder-web run build
 
-# ---- Stage 2: serve ----
-FROM nginx:alpine
+# Site data + uploaded floor plans live here — mount a volume at /data.
+ENV WAYFINDER_DATA_DIR=/data
+ENV NODE_ENV=production
+ENV SERVE_STATIC=1
 
-COPY artifacts/wayfinder-web/deploy/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/artifacts/wayfinder-web/dist/public /usr/share/nginx/html
+EXPOSE 3000
 
-EXPOSE 80
+WORKDIR /app/artifacts/wayfinder-web
+CMD ["pnpm", "exec", "tsx", "server/index.ts"]

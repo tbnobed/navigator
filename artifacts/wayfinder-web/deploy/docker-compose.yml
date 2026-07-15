@@ -1,4 +1,5 @@
-# Run from the monorepo root:  docker compose -f artifacts/wayfinder-web/deploy/docker-compose.yml up -d --build
+# Run from the monorepo root:
+#   ADMIN_PASSWORD=your-strong-password docker compose -f artifacts/wayfinder-web/deploy/docker-compose.yml up -d --build
 services:
   wayfinder:
     build:
@@ -7,4 +8,15 @@ services:
     container_name: wayfinder-web
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "8080:3000"
+    environment:
+      # Required — protects the /admin portal.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD before starting}
+      # Optional — used to sign the admin session cookie (defaults derive from the password).
+      SESSION_SECRET: ${SESSION_SECRET:-}
+    volumes:
+      # Sites you create in /admin (JSON + uploaded floor plans) persist here.
+      - wayfinder-data:/data
+
+volumes:
+  wayfinder-data:
