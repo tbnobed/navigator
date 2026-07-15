@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { api, storedToBuilding, uploadUrl } from "@/lib/sites";
 import { BrandLogo } from "@/components/BrandLogo";
-import { buildings as staticBuildings } from "@/lib/buildings";
+import { buildings as staticBuildings, getPois } from "@/lib/buildings";
 import type { Building } from "@/lib/buildings";
 import type { StoredSite } from "@/lib/siteTypes";
 import { Button } from "@/components/ui/button";
@@ -87,7 +87,23 @@ export default function AdminQRPosters() {
           const posterTitle = stored?.posterTitle?.trim() || "Indoora";
           const posterLogo = stored?.posterLogoFile ? uploadUrl(stored.posterLogoFile) : null;
           const accent = stored?.posterAccentColor || "#0f172a";
-          return bldg.entrances.map(ent => {
+          // Entrance posters + room-level posters: a QR at each destination's
+          // door lets a guest start a NEW journey from that room (e.g. leave
+          // Studio C and navigate to Studio A) without walking back to an
+          // entrance.
+          const posters = [
+            ...bldg.entrances.map((ent: any) => ({
+              nodeId: ent.nodeId,
+              label: ent.label,
+              sub: "Scan to start navigating",
+            })),
+            ...getPois(bldg).map((poi) => ({
+              nodeId: poi.id,
+              label: poi.label,
+              sub: "Scan to navigate from here",
+            })),
+          ];
+          return posters.map(ent => {
             const url = `${baseUrl}/?b=${bldg.id}&e=${ent.nodeId}`;
             return (
               <div
@@ -118,12 +134,12 @@ export default function AdminQRPosters() {
                 </div>
 
                 <div className="text-center space-y-4 print:space-y-2">
-                  <p className="text-3xl print:text-2xl font-bold text-slate-800 tracking-tight">Scan to start navigating</p>
+                  <p className="text-3xl print:text-2xl font-bold text-slate-800 tracking-tight">{ent.sub}</p>
                   <p className="text-xl print:text-lg text-slate-500">No app download required</p>
                   <p className="text-lg print:text-base text-slate-500 pt-4 print:pt-2">
                     Camera not working? Open the site and enter code{" "}
                     <span className="font-mono font-bold text-slate-800">
-                      {ent.qrValue.replace("INDOORA://", "")}
+                      {bldg.id}/{ent.nodeId}
                     </span>
                   </p>
                 </div>

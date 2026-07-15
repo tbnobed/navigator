@@ -37,8 +37,9 @@ export default function Destination() {
     );
   }
 
-  const pois = getPois(building);
-  
+  // Exclude the start point itself ("navigate to where I already am").
+  const pois = getPois(building).filter((poi) => poi.id !== e);
+
   // Group by category
   const grouped = pois.reduce((acc, poi) => {
     const cat = poi.category || "Other";

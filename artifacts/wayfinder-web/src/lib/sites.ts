@@ -93,6 +93,24 @@ export function getBuildingIn(list: Building[], id: string | null | undefined): 
   return list.find((b) => b.id === id);
 }
 
+/**
+ * Resolve an `INDOORA://building/node` code where the node can be ANY node
+ * (entrance or destination) — used by room-level QR posters so a guest can
+ * start a journey from e.g. Studio C's door.
+ */
+export function findStartIn(
+  list: Building[],
+  qrValue: string,
+): { building: Building; nodeId: string } | null {
+  const m = /^INDOORA:\/\/([^/]+)\/(.+)$/i.exec(qrValue.trim());
+  if (!m) return null;
+  const building = list.find((b) => b.id.toLowerCase() === m[1].toLowerCase());
+  if (!building) return null;
+  const node = building.nodes.find((n) => n.id.toLowerCase() === m[2].toLowerCase());
+  if (!node) return null;
+  return { building, nodeId: node.id };
+}
+
 export function findEntranceIn(
   list: Building[],
   qrValue: string,

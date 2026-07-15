@@ -145,12 +145,14 @@ function ActiveNavigation({
   nav, 
   building, 
   destination,
-  onExit
+  onExit,
+  onContinueFrom
 }: { 
   nav: any; 
   building: any; 
   destination: any;
   onExit: () => void;
+  onContinueFrom: () => void;
 }) {
   const [viewMode, setViewMode] = useState<'ar' | 'map'>('ar');
   const [debugMode, setDebugMode] = useState(false);
@@ -176,7 +178,10 @@ function ActiveNavigation({
         <p className="text-xl text-muted-foreground mb-12">
           You are at <strong className="text-foreground">{destination.label}</strong>
         </p>
-        <Button size="lg" className="w-full max-w-sm rounded-full h-16 text-lg" onClick={onExit}>
+        <Button size="lg" className="w-full max-w-sm rounded-full h-16 text-lg" onClick={onContinueFrom}>
+          Going somewhere else?
+        </Button>
+        <Button size="lg" variant="outline" className="w-full max-w-sm rounded-full h-16 text-lg mt-4" onClick={onExit}>
           Done
         </Button>
       </div>
@@ -586,7 +591,11 @@ export default function Navigate() {
 
   const { buildings, isLoading } = useBuildings();
   const building = getBuildingIn(buildings, b);
+  // The journey can start from ANY node — an entrance (QR at the door, has a
+  // known facing bearing) or a destination (room QR / "going somewhere else"
+  // after arrival, bearing unknown → user confirms direction pre-walk).
   const entrance = building?.entrances.find((ent: any) => ent.nodeId === e);
+  const startNode = building ? getNode(building, e || "") : null;
   const destination = building ? getNode(building, d || "") : null;
 
   const route = useMemo(() => {
@@ -604,7 +613,7 @@ export default function Navigate() {
     );
   }
 
-  if (!b || !e || !d || !building || !entrance || !destination || !route) {
+  if (!b || !e || !d || !building || !startNode || !destination || !route) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-6 text-center safe-area-pt">
         <h1 className="text-2xl font-bold mb-2">Route not found</h1>
@@ -617,10 +626,11 @@ export default function Navigate() {
   return (
     <NavigateInner
       route={route}
-      entranceFacingBearing={entrance.facingBearing}
+      entranceFacingBearing={entrance?.facingBearing ?? 0}
       building={building}
       destination={destination}
       onExit={() => setLocation(`/destination?b=${b}&e=${e}`)}
+      onContinueFrom={() => setLocation(`/destination?b=${b}&e=${d}`)}
     />
   );
 }
@@ -631,12 +641,14 @@ function NavigateInner({
   building,
   destination,
   onExit,
+  onContinueFrom,
 }: {
   route: ReturnType<typeof buildRoute>;
   entranceFacingBearing: number;
   building: Building;
   destination: BuildingNode;
   onExit: () => void;
+  onContinueFrom: () => void;
 }) {
   const nav = useIndoorNavigation(route, entranceFacingBearing);
   const [started, setStarted] = useState(false);
@@ -658,6 +670,7 @@ function NavigateInner({
       building={building}
       destination={destination}
       onExit={onExit}
+      onContinueFrom={onContinueFrom}
     />
   );
 }

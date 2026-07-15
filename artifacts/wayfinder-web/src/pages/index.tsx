@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import type { Building } from "@/lib/buildings";
-import { useBuildings, getBuildingIn, findEntranceIn } from "@/lib/sites";
+import { useBuildings, getBuildingIn, findEntranceIn, findStartIn } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/QrScanner";
@@ -32,6 +32,12 @@ function resolveEntranceCode(buildings: Building[], raw: string): { b: string; e
     findEntranceIn(buildings, legacy) ??
     findEntranceIn(buildings, `INDOORA://${text.toLowerCase()}`);
   if (byQr) return { b: byQr.building.id, e: byQr.entrance.nodeId };
+
+  // Any-node code (room-level QR posters): "building/node" where node is a
+  // destination rather than an entrance.
+  const byNode =
+    findStartIn(buildings, legacy) ?? findStartIn(buildings, `INDOORA://${text}`);
+  if (byNode) return { b: byNode.building.id, e: byNode.nodeId };
 
   // Bare building/site id — caller shows its entrance list.
   if (getBuildingIn(buildings, text.toLowerCase())) return { b: text.toLowerCase() };
@@ -88,9 +94,13 @@ export default function Home() {
 
   const building = getBuildingIn(buildings, b);
   const entrance = building?.entrances.find(ent => ent.nodeId === e);
+  // The start can also be a non-entrance node (room-level QR posters or the
+  // post-arrival "Going somewhere else?" flow) — greet from there too.
+  const startNode = building && e ? building.nodes.find((n) => n.id === e) : undefined;
+  const startLabel = entrance?.label ?? startNode?.label;
 
-  // If we have building and entrance from QR, greet them directly
-  if (building && entrance) {
+  // If we have building and a known start point from QR, greet them directly
+  if (building && startLabel) {
     return (
       <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center bg-background text-foreground p-6 safe-area-pt safe-area-pb relative overflow-hidden">
         {/* Decorative background element */}
@@ -106,7 +116,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg text-muted-foreground text-center mb-12">
-            You are at the <strong className="text-foreground font-semibold">{entrance.label}</strong>. Let's get you where you need to go.
+            You are at {entrance ? 'the ' : ''}<strong className="text-foreground font-semibold">{startLabel}</strong>. Let's get you where you need to go.
           </p>
 
           <Button 
