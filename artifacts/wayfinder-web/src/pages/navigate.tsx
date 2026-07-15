@@ -200,11 +200,9 @@ function ActiveNavigation({
               muted 
               playsInline 
             />
-            {/* Floor-painted path overlay disabled for now (projection scale
-                issues on device) — a big directional arrow guides instead.
-                Shown in debug mode so on-device capture sessions can compare
-                the drawn path against the real corridor. */}
-            {cameraStatus === 'active' && debugMode && (
+            {/* Floor-painted path over the camera view, plus the directional
+                arrow for at-a-glance guidance. */}
+            {cameraStatus === 'active' && (
               <ARPathOverlay
                 points={nav.upcomingPoints}
                 userX={nav.position.x}
@@ -216,8 +214,10 @@ function ActiveNavigation({
                 color="hsl(var(--primary))"
               />
             )}
+            {/* Arrow sits in the upper third so the floor-painted path in the
+                lower half of the frame stays visible. */}
             {cameraStatus === 'active' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-[35vh]">
                 <div
                   className="transition-transform duration-300 ease-out drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
                   style={{ transform: `rotate(${nav.arrowRotation}deg)` }}

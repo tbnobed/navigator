@@ -113,7 +113,9 @@ export function ARPathOverlay({
         continue; // skip leading behind-camera points (e.g. facing away at start)
       }
       started = true;
-      const x = cx + (p.right / depth) * focal * 0.9;
+      // Same focal length on both axes — mismatched x/y focals squash the
+      // path horizontally and make it read as a shrunken map, not floor paint.
+      const x = cx + (p.right / depth) * focal;
       const y = cy - (vertical / depth) * focal;
       if (y > height + 120 || y < -60 || x < -width || x > width * 2) continue;
       result.push({ x, y, forward: p.forward });
