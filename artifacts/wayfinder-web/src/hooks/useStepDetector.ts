@@ -12,8 +12,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * gesture (same prompt family as device orientation).
  */
 
-/** Peak threshold above gravity-filtered baseline (m/s²). */
-const STEP_THRESHOLD = 1.6;
+/**
+ * Peak threshold above gravity-filtered baseline (m/s²).
+ * 1.6 missed gentle indoor walking with the phone held up in front (AR pose)
+ * on iPhone — steps land much softer than with the phone in a pocket.
+ */
+const STEP_THRESHOLD = 1.0;
 /** Minimum time between detected steps (ms) — max cadence ~3 steps/sec. */
 const STEP_COOLDOWN_MS = 320;
 /** Low-pass smoothing factor for the gravity estimate. */

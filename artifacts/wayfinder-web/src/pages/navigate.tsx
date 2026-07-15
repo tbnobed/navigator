@@ -449,6 +449,16 @@ function CalibrationScreen({
         </Button>
       </div>
 
+      {(!nav.headingAvailable || !nav.stepDetectionAvailable) && (
+        <p className="text-sm text-amber-600 dark:text-amber-500 font-medium mb-4 max-w-sm">
+          {!nav.headingAvailable && !nav.stepDetectionAvailable
+            ? "Compass and motion sensors aren't responding — walking won't be tracked automatically. Try reloading and allowing sensor access."
+            : !nav.headingAvailable
+              ? "Compass isn't responding — the direction won't follow you as you turn."
+              : "Motion sensor isn't responding — your position won't advance as you walk. Use \"I'm at the corner\" to move along the route."}
+        </p>
+      )}
+
       <Button size="lg" className="w-full max-w-sm rounded-full h-16 text-lg shadow-lg shadow-primary/25" onClick={onStart}>
         Start Walking
       </Button>

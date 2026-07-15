@@ -167,9 +167,17 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     heading,
     headingAvailable: compass.available,
     stepDetectionAvailable: motion.available,
-    /** Call from a user gesture to request iOS motion + orientation permission. */
+    /**
+     * Call from a user gesture to request iOS motion + orientation permission.
+     * Requested sequentially, NOT in parallel: on iOS the two prompts share one
+     * permission, and firing both concurrently makes the second call reject
+     * (it is no longer inside the user gesture once the first prompt resolves),
+     * which silently killed the compass — AR then never rotated and the map
+     * never advanced with steps.
+     */
     requestSensorPermissions: useCallback(async () => {
-      const [m, o] = await Promise.all([motion.requestPermission(), compass.requestPermission()]);
+      const m = await motion.requestPermission();
+      const o = await compass.requestPermission();
       return { motion: m, orientation: o };
     }, [motion.requestPermission, compass.requestPermission]),
     motionPermission: motion.permission,
