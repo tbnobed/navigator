@@ -129,98 +129,152 @@ export default function Home() {
     : [];
 
   return (
-    <div className="min-h-[100dvh] w-full flex flex-col bg-background text-foreground safe-area-pt safe-area-pb">
+    <div className="min-h-[100dvh] w-full flex flex-col bg-background text-foreground safe-area-pt safe-area-pb relative overflow-hidden">
+      {/* Decorative background wash */}
+      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[140vw] h-[100vw] rounded-full bg-primary/5 blur-3xl -z-10 pointer-events-none" />
+
       {scanning && <QrScanner onResult={handleScan} onClose={() => setScanning(false)} />}
 
-      <div className="p-6 pb-2">
-        <img
-          src={`${import.meta.env.BASE_URL}brand/glyph-app-icon.svg`}
-          alt="Indoora"
-          className="w-12 h-12 rounded-2xl mb-6 shadow-md shadow-primary/20"
-        />
+      {/* Brand header */}
+      <header className="flex items-center justify-center pt-8 pb-2">
         <img
           src={`${import.meta.env.BASE_URL}brand/logo-wordmark.svg`}
           alt="Indoora"
-          className="h-9 mb-2"
+          className="h-8"
         />
-        <p className="text-muted-foreground text-lg">Where are you starting from?</p>
-      </div>
+      </header>
 
-      <div className="px-6 mt-4 space-y-4">
-        <Button
-          size="lg"
-          className="w-full h-16 text-lg rounded-3xl shadow-lg shadow-primary/25"
-          onClick={() => {
-            setCodeError(null);
-            setScanning(true);
-          }}
-        >
-          <ScanLine className="w-6 h-6 mr-3" />
-          Scan Entrance QR Code
-        </Button>
+      {!siteFilter ? (
+        /* ---------- Hero: no site chosen yet ---------- */
+        <div className="flex-1 overflow-y-auto flex flex-col px-6 py-6 max-w-sm w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="my-auto w-full">
+          <div className="flex flex-col items-center text-center mb-10">
+            <div className="relative mb-8">
+              <div className="absolute inset-0 rounded-[2rem] bg-primary/20 blur-2xl scale-110" />
+              <img
+                src={`${import.meta.env.BASE_URL}brand/glyph-app-icon.svg`}
+                alt=""
+                className="relative w-24 h-24 rounded-[2rem] shadow-xl shadow-primary/25"
+              />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-balance mb-3">
+              Find your way inside
+            </h1>
+            <p className="text-muted-foreground text-lg text-balance">
+              Scan the QR poster at the entrance and we'll guide you to any room.
+            </p>
+          </div>
 
-        <div className="flex gap-3">
-          <Input
-            value={siteCode}
-            onChange={(ev) => {
-              setSiteCode(ev.target.value);
-              setCodeError(null);
-            }}
-            onKeyDown={(ev) => ev.key === "Enter" && handleCodeSubmit()}
-            placeholder="Or enter a site code (e.g. studios/lobby)"
-            className="h-14 rounded-2xl text-base"
-            autoCapitalize="none"
-            autoCorrect="off"
-          />
           <Button
-            variant="secondary"
-            className="h-14 px-5 rounded-2xl"
-            onClick={handleCodeSubmit}
-            disabled={!siteCode.trim()}
+            size="lg"
+            className="w-full h-16 text-lg rounded-full shadow-lg shadow-primary/25 active:scale-[0.98] transition-transform"
+            onClick={() => {
+              setCodeError(null);
+              setScanning(true);
+            }}
           >
-            <ArrowRight className="w-5 h-5" />
+            <ScanLine className="w-6 h-6 mr-3" />
+            Scan QR Code
           </Button>
-        </div>
 
-        {codeError && <p className="text-sm font-medium text-destructive px-1">{codeError}</p>}
-
-        {siteFilter && (
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex items-center gap-4 my-6">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              choose your entrance
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              or enter a code
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
-        )}
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-12 space-y-8 mt-6">
-        {visibleBuildings.map(bldg => (
-          <div key={bldg.id} className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both">
-            <h2 className="text-sm font-bold text-muted-foreground tracking-wider uppercase mb-4 pl-1">
-              {bldg.name}
-            </h2>
-            <div className="space-y-3">
-              {bldg.entrances.map(ent => (
-                <button
-                  key={ent.nodeId}
-                  onClick={() => setLocation(`/destination?b=${bldg.id}&e=${ent.nodeId}`)}
-                  className="w-full text-left bg-card border border-card-border p-5 rounded-3xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.98] flex items-center justify-between group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <MapPin className="w-5 h-5 text-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                    <span className="font-semibold text-lg">{ent.label}</span>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </button>
-              ))}
-            </div>
+          <div className="flex gap-2">
+            <Input
+              value={siteCode}
+              onChange={(ev) => {
+                setSiteCode(ev.target.value);
+                setCodeError(null);
+              }}
+              onKeyDown={(ev) => ev.key === "Enter" && handleCodeSubmit()}
+              placeholder="Site code from the poster"
+              aria-label="Site code"
+              className="h-14 rounded-full text-base px-5 bg-card"
+              autoCapitalize="none"
+              autoCorrect="off"
+              inputMode="text"
+              enterKeyHint="go"
+              data-testid="input-site-code"
+            />
+            <Button
+              className="h-14 w-14 shrink-0 rounded-full p-0"
+              onClick={handleCodeSubmit}
+              disabled={!siteCode.trim()}
+              aria-label="Go"
+              data-testid="button-site-code-go"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
           </div>
-        ))}
-      </div>
+          <p className="text-xs text-muted-foreground text-center mt-2 px-2">
+            It's printed under the QR code, like <span className="font-mono">studios/lobby</span>
+          </p>
+
+          {codeError && (
+            <p className="text-sm font-medium text-destructive text-center mt-3 px-1" role="alert">
+              {codeError}
+            </p>
+          )}
+          </div>
+        </div>
+      ) : (
+        /* ---------- Site found: pick an entrance ---------- */
+        <div className="flex-1 flex flex-col px-6 max-w-sm w-full mx-auto pt-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h1 className="text-2xl font-extrabold tracking-tight mb-1">Almost there</h1>
+          <p className="text-muted-foreground mb-6">Which entrance are you standing at?</p>
+
+          {codeError && (
+            <p className="text-sm font-medium text-destructive mb-3 px-1" role="alert">
+              {codeError}
+            </p>
+          )}
+
+          <div className="flex-1 overflow-y-auto pb-12 space-y-8 -mx-1 px-1">
+            {visibleBuildings.map(bldg => (
+              <div key={bldg.id} className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both">
+                <h2 className="text-sm font-bold text-muted-foreground tracking-wider uppercase mb-4 pl-1">
+                  {bldg.name}
+                </h2>
+                <div className="space-y-3">
+                  {bldg.entrances.map(ent => (
+                    <button
+                      key={ent.nodeId}
+                      onClick={() => setLocation(`/destination?b=${bldg.id}&e=${ent.nodeId}`)}
+                      className="w-full text-left bg-card border border-card-border p-5 rounded-3xl shadow-sm hover:shadow-md hover:border-primary/30 transition-all active:scale-[0.98] flex items-center justify-between group"
+                      data-testid={`button-entrance-${ent.nodeId}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                          <MapPin className="w-5 h-5 text-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                        <span className="font-semibold text-lg">{ent.label}</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => {
+              setSiteFilter(null);
+              setSiteCode("");
+              setCodeError(null);
+            }}
+            className="text-sm font-semibold text-primary text-center py-4"
+          >
+            Not this site? Start over
+          </button>
+        </div>
+      )}
     </div>
   );
 }
