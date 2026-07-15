@@ -85,7 +85,11 @@ export function useBuildings(): { buildings: Building[]; isLoading: boolean } {
   const dynamic = (query.data?.sites ?? [])
     .map(storedToBuilding)
     .filter((b): b is Building => b !== null);
-  return { buildings: [...staticBuildings, ...dynamic], isLoading: query.isLoading };
+  // Admin-created sites FIRST and demo buildings with a colliding id removed:
+  // a real site with the same id as the built-in demo (e.g. "studios") must
+  // always win, otherwise visitors get routed on the demo's marked-up map.
+  const demos = staticBuildings.filter((s) => !dynamic.some((d) => d.id === s.id));
+  return { buildings: [...dynamic, ...demos], isLoading: query.isLoading };
 }
 
 export function getBuildingIn(list: Building[], id: string | null | undefined): Building | undefined {

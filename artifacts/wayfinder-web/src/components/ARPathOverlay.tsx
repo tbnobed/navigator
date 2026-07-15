@@ -103,11 +103,16 @@ export function ARPathOverlay({
     const result: { x: number; y: number; forward: number }[] = [];
     let started = false;
     for (const p of dense) {
-      // Rotate the camera around its horizontal axis by the pitch: a floor
-      // point at (forward, -CAMERA_HEIGHT) in level-camera space becomes
-      // (depth, vertical) in the tilted camera's frame.
-      const depth = p.forward * cosP - CAMERA_HEIGHT * sinP;
-      const vertical = -CAMERA_HEIGHT * cosP - p.forward * sinP; // negative = below view center
+      // Rotate the camera around its horizontal axis by the pitch. With the
+      // camera pitched DOWN by `pitchDown`, its forward axis is (cos p, -sin p)
+      // and its up axis is (sin p, cos p) in (forward, up) world coords; a
+      // floor point sits at (p.forward, -CAMERA_HEIGHT). Projecting onto those
+      // axes gives the tilted-camera coordinates. (The previous version had
+      // both pitch terms sign-flipped — tilting the phone at the floor pushed
+      // the path off the bottom of the screen instead of raising it into view,
+      // so at a natural holding angle nothing was ever visible.)
+      const depth = p.forward * cosP + CAMERA_HEIGHT * sinP;
+      const vertical = p.forward * sinP - CAMERA_HEIGHT * cosP; // negative = below view center
       if (depth < NEAR_PLANE) {
         if (started) break; // path went behind the camera — stop the trace
         continue; // skip leading behind-camera points (e.g. facing away at start)

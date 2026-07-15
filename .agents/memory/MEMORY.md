@@ -1,3 +1,4 @@
 - [Indoor wayfinding without beacons](indoor-wayfinding-dead-reckoning.md) — pedometer+compass dead-reckoning pattern for GPS-denied indoor nav prototypes on Expo.
 - [Wayfinder admin sites architecture](wayfinder-admin-sites.md) — sites stored pixel-based in JSON, converted client-side; single-container deploy; add new site fields to stored shape + converter.
+- [AR ground projection pitfalls](ar-ground-projection.md) — SVG var() colors silently invisible; pitch rotation sign check via node sim; demo building must not shadow stored site ids.
 - [iOS sensor permissions](ios-sensor-permissions.md) — motion+orientation share one iOS permission; request sequentially, attach listeners regardless of result, trust received events over permission status.
