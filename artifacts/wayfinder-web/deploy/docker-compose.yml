@@ -1,0 +1,10 @@
+# Run from the monorepo root:  docker compose -f artifacts/wayfinder-web/deploy/docker-compose.yml up -d --build
+services:
+  wayfinder:
+    build:
+      context: ../../..
+      dockerfile: artifacts/wayfinder-web/deploy/Dockerfile
+    container_name: wayfinder-web
+    restart: unless-stopped
+    ports:
+      - "8080:80"

@@ -23,3 +23,10 @@ similar "no hardware available" indoor/outdoor guided-walk feature. Always
 add a manual correction control (e.g. "snap to next waypoint") since dead
 reckoning drifts over time, and require explicit user confirmation for floor
 changes (elevator/stairs) since phones can't sense floor transitions.
+
+## No-install web variant (iPhone Safari)
+Same dead-reckoning pattern works as a plain web app — QR codes just encode URLs with `?b=<building>&e=<entrance>` params, so the iPhone camera opens Safari directly (no app install).
+- Compass: `webkitCompassHeading` on iOS (regular `deviceorientation` event); `deviceorientationabsolute` + `360 - alpha` fallback elsewhere.
+- No web pedometer API: detect steps from `devicemotion` via low-pass gravity baseline + threshold crossing (~1.6 m/s² residual, 320 ms refractory).
+- iOS requires `DeviceMotionEvent.requestPermission()` / `DeviceOrientationEvent.requestPermission()` called from a user tap — gate nav behind an "Enable sensors" button.
+- Camera AR view: `getUserMedia({video:{facingMode:'environment'}})` over HTTPS + the same SVG ground-plane projection overlay.
