@@ -1,0 +1,45 @@
+obtv-admin@maps:~/navigator$ docker compose -f artifacts/wayfinder-web/deploy/docker-compose.yml up -d --build
+[+] Building 148.6s (16/16) FINISHED
+ => [internal] load local bake definitions                                                                                                       0.0s
+ => => reading from stdin 545B                                                                                                                   0.0s
+ => [internal] load build definition from Dockerfile                                                                                             0.1s
+ => => transferring dockerfile: 1.61kB                                                                                                           0.0s
+ => [internal] load metadata for docker.io/library/node:22-slim                                                                                  1.4s
+ => [internal] load .dockerignore                                                                                                                0.1s
+ => => transferring context: 2B                                                                                                                  0.0s
+ => [1/9] FROM docker.io/library/node:22-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3                           14.6s
+ => => resolve docker.io/library/node:22-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3                            0.2s
+ => => sha256:437216719022b2853003498de36b055604c6ff1bcee290b912ed44226f2d3d46 446B / 446B                                                       0.3s
+ => => sha256:392df1351ac2d7628088ee58b248e62a2c1b749e4beb94b7640994df1857c8ca 1.71MB / 1.71MB                                                   0.3s
+ => => sha256:bb65bd65926c2b38f8a7d518cefa8524e1484182dd6ffba7883654d886b4cfb3 49.94MB / 49.94MB                                                 2.8s
+ => => sha256:e33bee2ce77b0c3748e6a8f2b808a5ab1d2ed466d5ee5a9b991cba597bd028e2 3.31kB / 3.31kB                                                   0.2s
+ => => sha256:597c6c618d36213af657a6a8444a5d87801f9a219682b206ad21ccb8f3e57bbd 28.23MB / 28.23MB                                                 1.7s
+ => => extracting sha256:597c6c618d36213af657a6a8444a5d87801f9a219682b206ad21ccb8f3e57bbd                                                        4.2s
+ => => extracting sha256:e33bee2ce77b0c3748e6a8f2b808a5ab1d2ed466d5ee5a9b991cba597bd028e2                                                        0.2s
+ => => extracting sha256:bb65bd65926c2b38f8a7d518cefa8524e1484182dd6ffba7883654d886b4cfb3                                                        5.9s
+ => => extracting sha256:392df1351ac2d7628088ee58b248e62a2c1b749e4beb94b7640994df1857c8ca                                                        0.4s
+ => => extracting sha256:437216719022b2853003498de36b055604c6ff1bcee290b912ed44226f2d3d46                                                        0.2s
+ => [internal] load build context                                                                                                                0.4s
+ => => transferring context: 61.29kB                                                                                                             0.0s
+ => [2/9] RUN corepack enable && corepack prepare pnpm@10.26.1 --activate                                                                        6.6s
+ => [3/9] WORKDIR /app                                                                                                                           0.5s
+ => [4/9] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* tsconfig.base.json ./                                                            0.7s
+ => [5/9] COPY lib ./lib                                                                                                                         0.5s
+ => [6/9] COPY artifacts/wayfinder-web ./artifacts/wayfinder-web                                                                                 0.5s
+ => [7/9] RUN pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... ||     pnpm install --config.dangerouslyAllowAllBuilds=true   11.7s
+ => [8/9] RUN pnpm --filter @workspace/wayfinder-web run build                                                                                  11.3s
+ => [9/9] WORKDIR /app/artifacts/wayfinder-web                                                                                                   0.6s
+ => exporting to image                                                                                                                          98.5s
+ => => exporting layers                                                                                                                         54.9s
+ => => exporting manifest sha256:0ca3ecfb2e8f7178eef5621904eb5d9986d0a890300381ec3b474e749d770673                                                0.2s
+ => => exporting config sha256:c87fa5ff093b10f6ba894cc553add7835648f81975dd34cd6194753de8140a91                                                  0.2s
+ => => exporting attestation manifest sha256:1b353805ce9b508ea2d33c28d9b1fd12aa68b4906f4a8bc9480169781ac16059                                    0.3s
+ => => exporting manifest list sha256:a6136d5aa41fab3fc07d342301daf011e62ab9e21059a2db33feb16cf725b04a                                           0.2s
+ => => naming to docker.io/library/deploy-wayfinder:latest                                                                                       0.0s
+ => => unpacking to docker.io/library/deploy-wayfinder:latest                                                                                   42.5s
+ => resolving provenance for metadata file                                                                                                       0.0s
+[+] up 4/4
+ ✔ Image deploy-wayfinder       Built                                                                                                           148.8s
+ ✔ Network deploy_default       Created                                                                                                           0.2s
+ ✔ Volume deploy_wayfinder-data Created                                                                                                           0.0s
+ ✔ Container wayfinder-web      Started    
