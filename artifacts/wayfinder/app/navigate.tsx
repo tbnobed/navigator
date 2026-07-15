@@ -10,6 +10,7 @@ import { PermissionCard } from '@/components/PermissionCard';
 import { FloorPlanView } from '@/components/FloorPlanView';
 import { DirectionArrow } from '@/components/DirectionArrow';
 import { InstructionCard } from '@/components/InstructionCard';
+import { ARPathOverlay } from '@/components/ARPathOverlay';
 import { getBuilding, getNode } from '@/constants/buildings';
 import type { Building, BuildingNode } from '@/constants/buildings';
 import { buildRoute, findShortestPath } from '@/lib/routing';
@@ -85,6 +86,7 @@ function NavigateContent({
   const insets = useSafeAreaInsets();
   const nav: IndoorNavState = useIndoorNavigation(route, facingBearing);
   const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [calibrating, setCalibrating] = useState(true);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const floor = building.floors.find((f) => f.level === nav.floor)!;
@@ -114,6 +116,24 @@ function NavigateContent({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     nav.confirmTransition();
   };
+
+  const handleAdjust = (delta: number) => {
+    Haptics.selectionAsync();
+    nav.adjustHeading(delta);
+  };
+
+  const backButton = (dark?: boolean) => (
+    <TouchableOpacity
+      style={[
+        styles.backFab,
+        { top: insets.top + 10, backgroundColor: dark ? 'rgba(18,23,43,0.7)' : colors.card },
+      ]}
+      onPress={() => router.back()}
+      testID="back-button"
+    >
+      <Feather name="chevron-left" size={22} color={dark ? '#fff' : colors.foreground} />
+    </TouchableOpacity>
+  );
 
   if (nav.arrived) {
     return (
@@ -159,6 +179,55 @@ function NavigateContent({
     );
   }
 
+  if (calibrating) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+        {backButton()}
+        <Text style={[styles.arrivedTitle, { color: colors.foreground }]}>Set your direction</Text>
+        <Text style={[styles.arrivedSub, { color: colors.mutedForeground, maxWidth: 300 }]}>
+          Face down the hallway you&apos;re about to walk. The arrow should point the way to{' '}
+          {destination.label}. If it looks off, nudge it with the buttons below.
+        </Text>
+        <View style={styles.calibrationArrow}>
+          <DirectionArrow rotation={nav.arrowRotation} size={110} />
+        </View>
+        <View style={styles.calibrationControls}>
+          <TouchableOpacity
+            style={[styles.rotateButton, { backgroundColor: colors.secondary }]}
+            onPress={() => handleAdjust(-15)}
+            testID="rotate-left-button"
+          >
+            <Feather name="rotate-ccw" size={20} color={colors.foreground} />
+            <Text style={[styles.rotateText, { color: colors.foreground }]}>15°</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.rotateButton, { backgroundColor: colors.secondary }]}
+            onPress={() => handleAdjust(15)}
+            testID="rotate-right-button"
+          >
+            <Feather name="rotate-cw" size={20} color={colors.foreground} />
+            <Text style={[styles.rotateText, { color: colors.foreground }]}>15°</Text>
+          </TouchableOpacity>
+        </View>
+        {!nav.headingAvailable ? (
+          <Text style={[styles.calibrationNote, { color: colors.mutedForeground }]}>
+            No compass detected — direction is estimated from the entrance and your adjustments.
+          </Text>
+        ) : null}
+        <TouchableOpacity
+          style={[styles.doneButton, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setCalibrating(false);
+          }}
+          testID="start-walking-button"
+        >
+          <Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>Start walking</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (viewMode === 'ar') {
     if (!cameraPermission) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
     if (!cameraPermission.granted) {
@@ -181,15 +250,21 @@ function NavigateContent({
     return (
       <View style={styles.arContainer}>
         <CameraView style={StyleSheet.absoluteFill} facing="back" />
+        <ARPathOverlay
+          points={nav.upcomingPoints}
+          userX={nav.position.x}
+          userY={nav.position.y}
+          facingBearing={nav.facingFloorplanBearing}
+          width={SCREEN.width}
+          height={SCREEN.height}
+        />
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           <View style={styles.arArrowWrap}>
-            <DirectionArrow rotation={nav.arrowRotation ?? 0} />
-            {nav.arrowRotation === null ? (
-              <Text style={styles.arHint}>Point your phone forward to calibrate</Text>
-            ) : null}
+            <DirectionArrow rotation={nav.arrowRotation} size={72} />
           </View>
         </View>
-        <View style={[styles.arTop, { paddingTop: insets.top + 12 }]}>
+        {backButton(true)}
+        <View style={[styles.arTop, { paddingTop: insets.top + 60 }]}>
           <InstructionCard
             instruction={nav.currentInstruction.instruction}
             distanceMeters={nav.distanceRemainingOnLeg}
@@ -211,10 +286,11 @@ function NavigateContent({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.mapTop, { paddingTop: insets.top + 12 }]}>
+      <View style={[styles.mapTop, { paddingTop: insets.top + 12, paddingLeft: 64 }]}>
         <Text style={[styles.destinationLabel, { color: colors.mutedForeground }]}>Heading to</Text>
         <Text style={[styles.destinationTitle, { color: colors.foreground }]}>{destination.label}</Text>
       </View>
+      {backButton()}
 
       <View style={styles.mapWrap}>
         <FloorPlanView
@@ -223,7 +299,7 @@ function NavigateContent({
           edges={floorEdges}
           routePoints={nav.leg.points}
           userPosition={nav.position}
-          userHeading={nav.targetFloorplanBearing}
+          userHeading={nav.facingFloorplanBearing}
           destinationNodeId={destination.id}
           width={SCREEN.width}
           height={SCREEN.height * 0.5}
@@ -331,4 +407,31 @@ const styles = StyleSheet.create({
   arArrowWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   arHint: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontFamily: 'Inter_500Medium' },
   arTop: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16 },
+  backFab: {
+    position: 'absolute',
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  calibrationArrow: { marginVertical: 28 },
+  calibrationControls: { flexDirection: 'row', gap: 16 },
+  rotateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 999,
+  },
+  rotateText: { fontSize: 14, fontWeight: '700', fontFamily: 'Inter_700Bold' },
+  calibrationNote: { fontSize: 12, marginTop: 16, textAlign: 'center', maxWidth: 280, fontFamily: 'Inter_400Regular' },
 });

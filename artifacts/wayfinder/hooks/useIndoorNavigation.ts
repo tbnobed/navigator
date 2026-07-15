@@ -34,6 +34,8 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
   const [distanceAlong, setDistanceAlong] = useState(0);
   const [simulate, setSimulate] = useState(false);
   const [headingOffset, setHeadingOffset] = useState<number | null>(null);
+  /** User-applied manual rotation (degrees), from the pre-walk "adjust direction" step. */
+  const [manualAdjust, setManualAdjust] = useState(0);
   const calibratedRef = useRef(false);
 
   const leg = route.legs[legIndex];
@@ -93,9 +95,24 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
   const nextWaypoint: RoutePoint = leg.points[Math.min(position.segmentIndex + 1, leg.points.length - 1)];
   const targetFloorplanBearing = bearingDeg(position.point, nextWaypoint);
 
-  const facingFloorplanBearing = heading !== null && headingOffset !== null ? heading - headingOffset : null;
-  const arrowRotation =
-    facingFloorplanBearing !== null ? angleDiff(targetFloorplanBearing, facingFloorplanBearing) : null;
+  // Which way the user faces in floorplan space. Falls back to the entrance's
+  // known facing direction when no compass is available (e.g. web preview),
+  // and always applies the user's manual adjustment on top.
+  const compassFacing = heading !== null && headingOffset !== null ? heading - headingOffset : null;
+  const facingFloorplanBearing =
+    (((compassFacing ?? entranceFacingBearing) + manualAdjust) % 360 + 360) % 360;
+  const arrowRotation = angleDiff(targetFloorplanBearing, facingFloorplanBearing);
+
+  /** Rotate the user's perceived facing direction (degrees, positive = clockwise). */
+  const adjustHeading = useCallback((deltaDeg: number) => {
+    setManualAdjust((prev) => prev + deltaDeg);
+  }, []);
+
+  /** Upcoming route geometry from the live position to the end of the current leg. */
+  const upcomingPoints = useMemo(() => {
+    const rest = leg.points.slice(position.segmentIndex + 1);
+    return [{ x: position.point.x, y: position.point.y }, ...rest.map((p) => ({ x: p.x, y: p.y }))];
+  }, [leg, position]);
 
   const distanceRemainingOnLeg = Math.max(leg.totalDistance - distanceAlong, 0);
   const totalRemaining =
@@ -130,6 +147,7 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     setDistanceAlong(0);
     calibratedRef.current = false;
     setHeadingOffset(null);
+    setManualAdjust(0);
   }, []);
 
   return {
@@ -145,6 +163,9 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     pedometerAvailable,
     arrowRotation,
     targetFloorplanBearing,
+    facingFloorplanBearing,
+    adjustHeading,
+    upcomingPoints,
     distanceRemainingOnLeg,
     totalRemaining,
     currentInstruction,
