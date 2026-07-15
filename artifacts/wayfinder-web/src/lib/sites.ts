@@ -71,9 +71,10 @@ export function storedToBuilding(site: StoredSite): Building | null {
 }
 
 /**
- * All buildings visible to visitors: the built-in demo + published
- * admin-created sites. Falls back to just the built-in one while loading or
- * if the API is unreachable, so the visitor app never breaks.
+ * All buildings visible to visitors: published admin-created sites.
+ * The built-in sample building is DEV-ONLY — it is compiled out of
+ * production builds entirely so demo data can never surface (or shadow a
+ * real site with the same id) on a live server.
  */
 export function useBuildings(): { buildings: Building[]; isLoading: boolean } {
   const query = useQuery({
@@ -85,10 +86,10 @@ export function useBuildings(): { buildings: Building[]; isLoading: boolean } {
   const dynamic = (query.data?.sites ?? [])
     .map(storedToBuilding)
     .filter((b): b is Building => b !== null);
-  // Admin-created sites FIRST and demo buildings with a colliding id removed:
-  // a real site with the same id as the built-in demo (e.g. "studios") must
-  // always win, otherwise visitors get routed on the demo's marked-up map.
-  const demos = staticBuildings.filter((s) => !dynamic.some((d) => d.id === s.id));
+  // Admin sites always take priority; demos (dev only) never shadow them.
+  const demos = import.meta.env.DEV
+    ? staticBuildings.filter((s) => !dynamic.some((d) => d.id === s.id))
+    : [];
   return { buildings: [...dynamic, ...demos], isLoading: query.isLoading };
 }
 

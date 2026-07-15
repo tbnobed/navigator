@@ -44,7 +44,11 @@ export default function AdminQRPosters() {
   const dynamic = (sites.data?.sites ?? [])
     .map(storedToBuilding)
     .filter((b): b is Building => b !== null);
-  const all = [...staticBuildings, ...dynamic];
+  // Demo buildings are dev-only and never shadow a real site with the same id.
+  const demos = import.meta.env.DEV
+    ? staticBuildings.filter((s) => !dynamic.some((d) => d.id === s.id))
+    : [];
+  const all = [...dynamic, ...demos];
   const buildings = siteFilter ? all.filter((b) => b.id === siteFilter) : all;
 
   const handlePrint = () => {
