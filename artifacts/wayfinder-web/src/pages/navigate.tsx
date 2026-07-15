@@ -218,7 +218,13 @@ function ActiveNavigation({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/20 text-primary rounded-full flex items-center justify-center">
-                <Navigation className="w-6 h-6 rotate-45" />
+                {/* Live direction-to-next-waypoint arrow, relative to which way
+                    the user is facing. Navigation glyph points NE at 0°, so
+                    offset by -45° to make it point straight up as the base. */}
+                <Navigation
+                  className="w-6 h-6 transition-transform duration-300"
+                  style={{ transform: `rotate(${nav.arrowRotation - 45}deg)` }}
+                />
               </div>
               <div>
                 <p className="text-sm font-bold text-white/60 tracking-wider uppercase mb-1">Up Next</p>

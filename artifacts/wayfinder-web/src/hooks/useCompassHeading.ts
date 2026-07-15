@@ -54,10 +54,16 @@ export function useCompassHeading() {
       try {
         const result = await DOE.requestPermission();
         setPermission(result);
-        if (result === 'granted') startListening();
+        // Attach listeners regardless of the reported result: on iOS, motion
+        // and orientation share ONE permission, and this call can throw or
+        // report "denied" simply because the user gesture was consumed by the
+        // motion prompt — even though access is actually granted. If access is
+        // truly denied, no events fire and this is harmless.
+        startListening();
         return result;
       } catch {
         setPermission('denied');
+        startListening();
         return 'denied' as const;
       }
     }

@@ -84,10 +84,15 @@ export function useStepDetector(enabled: boolean, onStep: (steps: number) => voi
       try {
         const result = await DME.requestPermission();
         setPermission(result);
-        if (result === 'granted') startListening();
+        // Attach listeners regardless of the reported result — on iOS the
+        // motion/orientation prompts share one permission, and a "denied"
+        // here can be a consumed-gesture artifact rather than a real denial.
+        // If truly denied, no events fire and this is harmless.
+        startListening();
         return result;
       } catch {
         setPermission('denied');
+        startListening();
         return 'denied' as const;
       }
     }
