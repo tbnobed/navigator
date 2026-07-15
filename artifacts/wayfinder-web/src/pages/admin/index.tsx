@@ -135,7 +135,7 @@ export default function AdminHome() {
             <p className="text-muted-foreground">Create sites and draw their maps.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setLocation("/qr")} title="QR posters" data-testid="button-qr-posters">
+            <Button variant="outline" size="icon" className="rounded-full" onClick={() => setLocation("/admin/qr")} title="QR posters" data-testid="button-qr-posters">
               <QrCode className="w-5 h-5" />
             </Button>
             <Button variant="outline" size="icon" className="rounded-full" onClick={logout} title="Sign out" data-testid="button-admin-logout">
@@ -195,6 +195,16 @@ export default function AdminHome() {
                     </div>
                   </div>
                 </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full text-muted-foreground shrink-0"
+                  onClick={() => setLocation(`/admin/qr?site=${site.id}`)}
+                  title="Print QR posters"
+                  data-testid={`button-qr-${site.id}`}
+                >
+                  <QrCode className="w-5 h-5" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -1,12 +1,49 @@
-import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { useLocation, useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { useBuildings } from "@/lib/sites";
+import { api, storedToBuilding } from "@/lib/sites";
+import { buildings as staticBuildings } from "@/lib/buildings";
+import type { Building } from "@/lib/buildings";
+import type { StoredSite } from "@/lib/siteTypes";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft } from "lucide-react";
 
-export default function QRPosters() {
+export default function AdminQRPosters() {
   const [, setLocation] = useLocation();
-  const { buildings } = useBuildings();
+  const search = useSearch();
+  const siteFilter = new URLSearchParams(search).get("site");
+
+  const me = useQuery({
+    queryKey: ["admin-me"],
+    queryFn: () => api<{ authenticated: boolean }>("/admin/me"),
+  });
+
+  const sites = useQuery({
+    queryKey: ["admin-sites"],
+    queryFn: () => api<{ sites: StoredSite[] }>("/admin/sites"),
+    enabled: me.data?.authenticated === true,
+  });
+
+  useEffect(() => {
+    if (me.data && !me.data.authenticated) {
+      setLocation("/admin");
+    }
+  }, [me.data, setLocation]);
+
+  if (me.isLoading || !me.data?.authenticated) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
+        <p className="text-muted-foreground animate-pulse">Loading...</p>
+      </div>
+    );
+  }
+
+  const dynamic = (sites.data?.sites ?? [])
+    .map(storedToBuilding)
+    .filter((b): b is Building => b !== null);
+  const all = [...staticBuildings, ...dynamic];
+  const buildings = siteFilter ? all.filter((b) => b.id === siteFilter) : all;
 
   const handlePrint = () => {
     window.print();
@@ -18,24 +55,34 @@ export default function QRPosters() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Screen-only header */}
       <div className="print:hidden p-6 border-b flex items-center justify-between bg-card safe-area-pt">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full">
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/admin")} className="rounded-full" data-testid="button-back-admin">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-bold text-lg">Print QR Codes</h1>
-        <Button onClick={handlePrint} className="rounded-full">
+        <h1 className="font-bold text-lg">
+          Print QR Codes{siteFilter && buildings[0] ? ` — ${buildings[0].name}` : ""}
+        </h1>
+        <Button onClick={handlePrint} className="rounded-full" data-testid="button-print-posters">
           <Printer className="w-4 h-4 mr-2" />
           Print Posters
         </Button>
       </div>
 
+      {buildings.length === 0 && (
+        <div className="text-center py-16 text-muted-foreground print:hidden">
+          {siteFilter
+            ? "This site has no floor plan or entrances yet, so there are no posters to print."
+            : "No sites with entrances yet."}
+        </div>
+      )}
+
       {/* Posters */}
       <div className="p-8 print:p-0 print:m-0 space-y-24 print:space-y-0">
-        {buildings.flatMap(bldg => 
+        {buildings.flatMap(bldg =>
           bldg.entrances.map(ent => {
             const url = `${baseUrl}/?b=${bldg.id}&e=${ent.nodeId}`;
             return (
-              <div 
-                key={`${bldg.id}-${ent.nodeId}`} 
+              <div
+                key={`${bldg.id}-${ent.nodeId}`}
                 className="max-w-2xl mx-auto bg-white text-black p-16 rounded-3xl shadow-xl print:shadow-none print:rounded-none print:w-[100vw] print:h-[100vh] print:max-w-none flex flex-col items-center justify-center break-after-page"
               >
                 <div className="text-center mb-16">
@@ -43,10 +90,10 @@ export default function QRPosters() {
                   <h2 className="text-3xl font-medium text-slate-600 mb-2">{bldg.name}</h2>
                   <h3 className="text-4xl font-bold text-slate-800">{ent.label}</h3>
                 </div>
-                
+
                 <div className="bg-white p-8 rounded-3xl border-4 border-slate-100 shadow-2xl mb-16">
-                  <QRCodeSVG 
-                    value={url} 
+                  <QRCodeSVG
+                    value={url}
                     size={400}
                     level="H"
                     includeMargin={false}
