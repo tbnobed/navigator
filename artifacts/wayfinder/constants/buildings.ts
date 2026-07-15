@@ -1,9 +1,13 @@
 /**
- * Static indoor-map data for the demo "Meridian Campus" office building.
+ * Static indoor-map data, built from the real first-floor plan of the
+ * broadcast studio building (attached floor-plan image).
  *
- * Coordinates are in meters on a per-floor 2D plane. This stands in for real
- * floor-plan/BIM data that a production app would load per building.
+ * Node coordinates were traced from the floor-plan image in pixels, then
+ * converted to meters with a fixed scale so distances, step counting and
+ * routing all work in real-world units.
  */
+
+import type { ImageSourcePropType } from 'react-native';
 
 export type NodeKind = 'entrance' | 'junction' | 'poi' | 'vertical';
 
@@ -40,6 +44,8 @@ export interface BuildingFloor {
   width: number;
   height: number;
   rooms: BuildingRoom[];
+  /** Optional real floor-plan image drawn as the map background (spans the full floor extent). */
+  image?: ImageSourcePropType;
 }
 
 export interface BuildingEntrance {
@@ -59,94 +65,141 @@ export interface Building {
   entrances: BuildingEntrance[];
 }
 
+/** Meters per floor-plan-image pixel (building main corridor ≈ 74 m end-to-end). */
+const METERS_PER_PIXEL = 0.08;
+/** Floor-plan image dimensions in pixels. */
+const IMAGE_W = 1024;
+const IMAGE_H = 722;
+
+/** Node positions traced from the floor-plan image, in image pixels. */
+const rawNodes: {
+  id: string;
+  px: number;
+  py: number;
+  kind: NodeKind;
+  label?: string;
+  category?: string;
+}[] = [
+  // QR starting points (red circles on the plan)
+  { id: 'entrance_lobby', px: 308, py: 578, kind: 'entrance', label: 'Lobby Entrance' },
+  { id: 'entrance_clobby', px: 952, py: 543, kind: 'entrance', label: 'C-Lobby Entrance' },
+
+  // Main east-west corridor (blue)
+  { id: 'j_west', px: 60, py: 600, kind: 'junction' },
+  { id: 'j_tech1', px: 115, py: 600, kind: 'junction' },
+  { id: 'j_ctrl', px: 232, py: 600, kind: 'junction' },
+  { id: 'j_lobby_s', px: 310, py: 598, kind: 'junction' },
+  { id: 'j_lobby', px: 345, py: 570, kind: 'junction' },
+  { id: 'j_master', px: 460, py: 558, kind: 'junction' },
+  { id: 'j_mid', px: 570, py: 555, kind: 'junction' },
+  { id: 'j_tech2', px: 660, py: 558, kind: 'junction' },
+  { id: 'j_it', px: 770, py: 558, kind: 'junction' },
+  { id: 'j_break', px: 875, py: 550, kind: 'junction' },
+
+  // West branches up to Studios A & B
+  { id: 't_tech1', px: 115, py: 495, kind: 'junction' },
+  { id: 't_ctrl', px: 232, py: 490, kind: 'junction' },
+  { id: 'studio_b', px: 115, py: 460, kind: 'poi', label: 'Studio B', category: 'Studio' },
+  { id: 'studio_a', px: 240, py: 470, kind: 'poi', label: 'Studio A', category: 'Studio' },
+
+  // North corridor along the west side of Studio C (blue vertical path)
+  { id: 'n1', px: 600, py: 520, kind: 'junction' },
+  { id: 'n2', px: 597, py: 455, kind: 'junction' },
+  { id: 'n3', px: 593, py: 390, kind: 'junction' },
+  { id: 'n4', px: 590, py: 320, kind: 'junction' },
+  { id: 'n5', px: 588, py: 250, kind: 'junction' },
+  { id: 'n6', px: 585, py: 190, kind: 'junction' },
+  { id: 'studio_c', px: 630, py: 310, kind: 'poi', label: 'Studio C', category: 'Studio' },
+  { id: 'studio_d', px: 645, py: 160, kind: 'poi', label: 'Studio D', category: 'Studio' },
+
+  // East corridor up past Break Room / Make-up toward Studio D
+  { id: 'e1', px: 848, py: 330, kind: 'junction' },
+  { id: 'e2', px: 843, py: 250, kind: 'junction' },
+  { id: 'e3', px: 838, py: 185, kind: 'junction' },
+];
+
+/** Walkable connections along the blue hallways. */
+const rawEdges: [string, string][] = [
+  ['j_west', 'j_tech1'],
+  ['j_tech1', 'j_ctrl'],
+  ['j_ctrl', 'j_lobby_s'],
+  ['j_lobby_s', 'entrance_lobby'],
+  ['entrance_lobby', 'j_lobby'],
+  ['j_lobby', 'j_master'],
+  ['j_master', 'j_mid'],
+  ['j_mid', 'j_tech2'],
+  ['j_tech2', 'j_it'],
+  ['j_it', 'j_break'],
+  ['j_break', 'entrance_clobby'],
+
+  ['j_tech1', 't_tech1'],
+  ['t_tech1', 'studio_b'],
+  ['j_ctrl', 't_ctrl'],
+  ['t_ctrl', 'studio_a'],
+
+  ['j_mid', 'n1'],
+  ['n1', 'n2'],
+  ['n2', 'n3'],
+  ['n3', 'n4'],
+  ['n4', 'n5'],
+  ['n5', 'n6'],
+  ['n4', 'studio_c'],
+  ['n6', 'studio_d'],
+
+  ['j_break', 'e1'],
+  ['e1', 'e2'],
+  ['e2', 'e3'],
+  ['e3', 'studio_d'],
+];
+
+const nodes: BuildingNode[] = rawNodes.map((n) => ({
+  id: n.id,
+  floor: 1,
+  x: n.px * METERS_PER_PIXEL,
+  y: n.py * METERS_PER_PIXEL,
+  kind: n.kind,
+  label: n.label,
+  category: n.category,
+}));
+
+const nodeById = new Map(nodes.map((n) => [n.id, n]));
+
+const edges: BuildingEdge[] = rawEdges.map(([a, b]) => {
+  const na = nodeById.get(a);
+  const nb = nodeById.get(b);
+  if (!na || !nb) throw new Error(`Unknown node in edge ${a}-${b}`);
+  return { a, b, distance: Math.hypot(nb.x - na.x, nb.y - na.y) };
+});
+
 export const buildings: Building[] = [
   {
-    id: 'campus-a',
-    name: 'Meridian Campus — Building A',
+    id: 'studios',
+    name: 'Broadcast Studios — Floor 1',
     floors: [
       {
         level: 1,
-        name: 'Ground Floor',
-        width: 40,
-        height: 32,
-        rooms: [
-          { id: 'lobby_room', x: 12, y: 21, width: 16, height: 9, label: 'Lobby' },
-          { id: 'conf_a_room', x: 2, y: 15, width: 8, height: 6, label: 'Conference Room A' },
-          { id: 'restroom_1a_room', x: 2, y: 10, width: 8, height: 4, label: 'Restrooms' },
-          { id: 'cafeteria_room', x: 27, y: 19, width: 11, height: 8, label: 'Cafeteria' },
-          { id: 'conf_b_room', x: 29, y: 15, width: 9, height: 6, label: 'Conference Room B' },
-          { id: 'core_room_1', x: 16, y: 6, width: 14, height: 6, label: 'Elevator / Stairs' },
-          { id: 'dock_room', x: 0, y: 13, width: 8, height: 6, label: 'Loading Dock' },
-        ],
+        name: 'Floor 1',
+        width: IMAGE_W * METERS_PER_PIXEL,
+        height: IMAGE_H * METERS_PER_PIXEL,
+        rooms: [],
+        image: require('@/assets/images/studio-floor1.png'),
+      },
+    ],
+    nodes,
+    edges,
+    entrances: [
+      {
+        qrValue: 'WAYFINDER://studios/lobby',
+        nodeId: 'entrance_lobby',
+        label: 'Lobby Entrance',
+        facingBearing: 0,
       },
       {
-        level: 2,
-        name: 'Level 2',
-        width: 40,
-        height: 32,
-        rooms: [
-          { id: 'conf_c_room', x: 2, y: 15, width: 9, height: 6, label: 'Conference Room C' },
-          { id: 'conf_d_room', x: 28, y: 15, width: 9, height: 6, label: 'Conference Room D' },
-          { id: 'open_offices_room', x: 10, y: 21, width: 20, height: 9, label: 'Open Offices' },
-          { id: 'restroom_2a_room', x: 26, y: 6, width: 8, height: 5, label: 'Restrooms' },
-          { id: 'core_room_2', x: 16, y: 6, width: 9, height: 6, label: 'Elevator / Stairs' },
-        ],
+        qrValue: 'WAYFINDER://studios/c-lobby',
+        nodeId: 'entrance_clobby',
+        label: 'C-Lobby Entrance',
+        facingBearing: 270,
       },
-    ],
-    nodes: [
-      { id: 'entrance_main', floor: 1, x: 20, y: 29, kind: 'entrance', label: 'Main Entrance' },
-      { id: 'entrance_dock', floor: 1, x: 4, y: 16, kind: 'entrance', label: 'Loading Dock' },
-      { id: 'lobby', floor: 1, x: 20, y: 25, kind: 'junction' },
-      { id: 'reception', floor: 1, x: 16, y: 25, kind: 'poi', label: 'Reception', category: 'Services' },
-      { id: 'corridor_mid', floor: 1, x: 20, y: 18, kind: 'junction' },
-      { id: 'corridor_west', floor: 1, x: 10, y: 18, kind: 'junction' },
-      { id: 'corridor_east', floor: 1, x: 30, y: 18, kind: 'junction' },
-      { id: 'corridor_north', floor: 1, x: 20, y: 10, kind: 'junction' },
-      { id: 'elevator_1', floor: 1, x: 20, y: 14, kind: 'vertical', label: 'Elevator' },
-      { id: 'stairs_1', floor: 1, x: 26, y: 10, kind: 'vertical', label: 'Stairs' },
-      { id: 'conf_a', floor: 1, x: 6, y: 18, kind: 'poi', label: 'Conference Room A', category: 'Meeting Room' },
-      { id: 'restroom_1a', floor: 1, x: 10, y: 13, kind: 'poi', label: 'Restrooms', category: 'Restroom' },
-      { id: 'cafeteria', floor: 1, x: 32, y: 22, kind: 'poi', label: 'Cafeteria', category: 'Food & Drink' },
-      { id: 'conf_b', floor: 1, x: 34, y: 18, kind: 'poi', label: 'Conference Room B', category: 'Meeting Room' },
-
-      { id: 'elevator_2', floor: 2, x: 20, y: 14, kind: 'vertical', label: 'Elevator' },
-      { id: 'stairs_2', floor: 2, x: 26, y: 10, kind: 'vertical', label: 'Stairs' },
-      { id: 'corridor_2north', floor: 2, x: 20, y: 10, kind: 'junction' },
-      { id: 'corridor_2mid', floor: 2, x: 20, y: 18, kind: 'junction' },
-      { id: 'conf_c', floor: 2, x: 8, y: 18, kind: 'poi', label: 'Conference Room C', category: 'Meeting Room' },
-      { id: 'conf_d', floor: 2, x: 32, y: 18, kind: 'poi', label: 'Conference Room D', category: 'Meeting Room' },
-      { id: 'open_offices', floor: 2, x: 20, y: 25, kind: 'poi', label: 'Open Offices', category: 'Workspace' },
-      { id: 'restroom_2a', floor: 2, x: 30, y: 10, kind: 'poi', label: 'Restrooms', category: 'Restroom' },
-    ],
-    edges: [
-      { a: 'entrance_main', b: 'lobby', distance: 4 },
-      { a: 'lobby', b: 'reception', distance: 4 },
-      { a: 'lobby', b: 'corridor_mid', distance: 7 },
-      { a: 'corridor_mid', b: 'corridor_west', distance: 10 },
-      { a: 'corridor_mid', b: 'corridor_east', distance: 10 },
-      { a: 'corridor_mid', b: 'corridor_north', distance: 8 },
-      { a: 'corridor_west', b: 'conf_a', distance: 5 },
-      { a: 'corridor_west', b: 'restroom_1a', distance: 5 },
-      { a: 'corridor_west', b: 'entrance_dock', distance: 7 },
-      { a: 'corridor_east', b: 'cafeteria', distance: 5 },
-      { a: 'corridor_east', b: 'conf_b', distance: 5 },
-      { a: 'corridor_north', b: 'elevator_1', distance: 4 },
-      { a: 'corridor_north', b: 'stairs_1', distance: 6 },
-
-      { a: 'corridor_2north', b: 'elevator_2', distance: 4 },
-      { a: 'corridor_2north', b: 'stairs_2', distance: 6 },
-      { a: 'corridor_2north', b: 'corridor_2mid', distance: 8 },
-      { a: 'corridor_2mid', b: 'conf_c', distance: 10 },
-      { a: 'corridor_2mid', b: 'conf_d', distance: 10 },
-      { a: 'corridor_2mid', b: 'open_offices', distance: 7 },
-      { a: 'corridor_2north', b: 'restroom_2a', distance: 6 },
-
-      { a: 'elevator_1', b: 'elevator_2', distance: 15, floorChange: { mode: 'elevator' } },
-      { a: 'stairs_1', b: 'stairs_2', distance: 10, floorChange: { mode: 'stairs' } },
-    ],
-    entrances: [
-      { qrValue: 'WAYFINDER://campus-a/main-entrance', nodeId: 'entrance_main', label: 'Main Entrance', facingBearing: 0 },
-      { qrValue: 'WAYFINDER://campus-a/loading-dock', nodeId: 'entrance_dock', label: 'Loading Dock', facingBearing: 108 },
     ],
   },
 ];

@@ -9,6 +9,7 @@ import { getBuilding, getPois } from '@/constants/buildings';
 import type { BuildingNode } from '@/constants/buildings';
 
 const CATEGORY_ICON: Record<string, keyof typeof Feather.glyphMap> = {
+  Studio: 'video',
   'Meeting Room': 'users',
   'Food & Drink': 'coffee',
   Restroom: 'droplet',

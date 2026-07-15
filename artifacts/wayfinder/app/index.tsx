@@ -105,7 +105,7 @@ export default function ScanScreen() {
           <Text style={styles.secondaryButtonText}>View demo QR codes</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleSkip} testID="skip-main-entrance-button">
-          <Text style={styles.skipText}>Skip — use Main Entrance</Text>
+          <Text style={styles.skipText}>Skip — use {mainEntrance.label}</Text>
         </TouchableOpacity>
       </View>
     </View>

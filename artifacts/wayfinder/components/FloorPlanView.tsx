@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
-import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Image as SvgImage, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 import type { BuildingEdge, BuildingFloor, BuildingNode } from '@/constants/buildings';
 import { useColors } from '@/hooks/useColors';
 
@@ -51,6 +51,16 @@ export function FloorPlanView({
   return (
     <View style={{ width, height }}>
       <Svg width={width} height={height}>
+        {floor.image ? (
+          <SvgImage
+            x={offsetX}
+            y={offsetY}
+            width={floor.width * scale}
+            height={floor.height * scale}
+            href={floor.image}
+            preserveAspectRatio="xMidYMid meet"
+          />
+        ) : null}
         {floor.rooms.map((room) => {
           const topLeft = toScreen(room.x, room.y);
           return (
@@ -72,7 +82,7 @@ export function FloorPlanView({
           );
         })}
 
-        {edges.map((edge, i) => {
+        {floor.image ? null : edges.map((edge, i) => {
           const a = nodeById.get(edge.a);
           const b = nodeById.get(edge.b);
           if (!a || !b) return null;
