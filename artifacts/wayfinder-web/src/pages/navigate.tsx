@@ -260,7 +260,131 @@ function ActiveNavigation({
 }
 
 
-function CalibrationScreen({ nav, onStart }: { nav: any; onStart: () => void }) {
+/**
+ * Pre-walk orientation: shows the user on the actual floor plan — their
+ * current facing direction (live compass beam), the route, and the
+ * destination — so they can visually confirm/adjust which way they're
+ * facing before starting, instead of trusting an abstract compass dial.
+ */
+function OrientationMap({
+  floor,
+  nav,
+  routePoints,
+  destination,
+}: {
+  floor: any;
+  nav: any;
+  routePoints: { x: number; y: number }[];
+  destination: BuildingNode | null;
+}) {
+  // Defensive: with missing floor data or an empty leg we can't draw a map.
+  if (!floor || routePoints.length === 0) {
+    return (
+      <div className="w-full rounded-3xl border border-border bg-muted/40 p-8 text-sm text-muted-foreground">
+        Map preview unavailable for this floor — you can still start walking.
+      </div>
+    );
+  }
+
+  // Fit the whole route (plus some padding) into the view.
+  const xs = routePoints.map((p) => p.x);
+  const ys = routePoints.map((p) => p.y);
+  const pad = 6;
+  const minX = Math.max(Math.min(...xs) - pad, 0);
+  const minY = Math.max(Math.min(...ys) - pad, 0);
+  const maxX = Math.min(Math.max(...xs) + pad, floor.width);
+  const maxY = Math.min(Math.max(...ys) + pad, floor.height);
+  const vw = Math.max(maxX - minX, 10);
+  const vh = Math.max(maxY - minY, 10);
+  const start = routePoints[0];
+  const destOnThisFloor = destination && destination.floor === floor.level;
+  const endPoint = routePoints[routePoints.length - 1];
+  // Scale marker/stroke sizes with the viewport so they stay readable.
+  const u = Math.max(vw, vh) / 60;
+
+  return (
+    <svg
+      className="w-full rounded-3xl border border-border bg-[#0f172a] shadow-inner"
+      viewBox={`${minX} ${minY} ${vw} ${vh}`}
+      style={{ aspectRatio: `${vw} / ${vh}`, maxHeight: '45dvh' }}
+    >
+      {floor.image && (
+        <image
+          href={floor.image}
+          x="0"
+          y="0"
+          width={floor.width}
+          height={floor.height}
+          opacity="0.45"
+          preserveAspectRatio="none"
+        />
+      )}
+
+      {/* Planned route */}
+      <polyline
+        points={routePoints.map((p) => `${p.x},${p.y}`).join(' ')}
+        fill="none"
+        stroke="hsl(var(--primary))"
+        strokeWidth={1.1 * u}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={`${2.2 * u} ${1.6 * u}`}
+        opacity="0.9"
+      />
+
+      {/* Destination (or leg end) marker */}
+      <g>
+        <circle cx={endPoint.x} cy={endPoint.y} r={2.6 * u} fill="hsl(var(--primary))" opacity="0.25">
+          <animate attributeName="r" values={`${2.2 * u};${3.2 * u};${2.2 * u}`} dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx={endPoint.x} cy={endPoint.y} r={1.4 * u} fill="hsl(var(--primary))" stroke="white" strokeWidth={0.35 * u} />
+      </g>
+
+      {/* User facing beam — rotates live with the compass + manual adjustment */}
+      <g transform={`rotate(${nav.facingFloorplanBearing} ${start.x} ${start.y})`}>
+        <polygon
+          points={`${start.x},${start.y - 9 * u} ${start.x - 3.4 * u},${start.y} ${start.x + 3.4 * u},${start.y}`}
+          fill="url(#orient-beam)"
+        />
+        <polygon
+          points={`${start.x},${start.y - 4.4 * u} ${start.x - 1.5 * u},${start.y - 1.4 * u} ${start.x + 1.5 * u},${start.y - 1.4 * u}`}
+          fill="#38bdf8"
+        />
+      </g>
+
+      {/* User position (entrance) */}
+      <circle cx={start.x} cy={start.y} r={1.5 * u} fill="white" />
+      <circle cx={start.x} cy={start.y} r={0.85 * u} fill="#38bdf8" />
+
+      {/* Labels */}
+      <text x={start.x} y={start.y + 4.2 * u} textAnchor="middle" fill="white" fontSize={2.4 * u} fontWeight="bold">
+        You
+      </text>
+      <text x={endPoint.x} y={endPoint.y - 3 * u} textAnchor="middle" fill="white" fontSize={2.4 * u} fontWeight="bold">
+        {destOnThisFloor ? (destination as any).label ?? 'Destination' : 'Next: stairs/elevator'}
+      </text>
+
+      <defs>
+        <linearGradient id="orient-beam" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.75" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+function CalibrationScreen({
+  nav,
+  building,
+  destination,
+  onStart,
+}: {
+  nav: any;
+  building: any;
+  destination: BuildingNode | null;
+  onStart: () => void;
+}) {
   const [step, setStep] = useState<'intro' | 'calibrate'>('intro');
 
   const handlePermissions = async () => {
@@ -290,41 +414,36 @@ function CalibrationScreen({ nav, onStart }: { nav: any; onStart: () => void }) 
     );
   }
 
+  const floor = building.floors.find((f: any) => f.level === nav.floor);
+
   return (
-    <div className="absolute inset-0 bg-background flex flex-col items-center justify-center p-6 text-center safe-area-pt safe-area-pb z-50">
-      <h1 className="text-3xl font-extrabold tracking-tight mb-2">Calibrate Compass</h1>
-      <p className="text-muted-foreground mb-12 max-w-sm">
-        Point your phone straight down the hall. Use the buttons below until the arrow points straight ahead.
+    <div className="absolute inset-0 bg-background flex flex-col items-center justify-center p-6 text-center safe-area-pt safe-area-pb z-50 overflow-y-auto">
+      <h1 className="text-3xl font-extrabold tracking-tight mb-2">Check Your Direction</h1>
+      <p className="text-muted-foreground mb-6 max-w-sm">
+        The blue beam shows which way we think you're facing. If it doesn't match
+        the direction you're actually looking, tap the buttons to rotate it.
       </p>
 
-      <div className="relative w-64 h-64 border-4 border-muted rounded-full flex items-center justify-center mb-12 shadow-inner">
-        {/* Compass markings */}
-        <div className="absolute top-2 text-xs font-bold text-muted-foreground">N</div>
-        <div className="absolute bottom-2 text-xs font-bold text-muted-foreground">S</div>
-        <div className="absolute left-2 text-xs font-bold text-muted-foreground">W</div>
-        <div className="absolute right-2 text-xs font-bold text-muted-foreground">E</div>
-        
-        <div 
-          className="absolute w-full h-full flex items-start justify-center pb-2 transition-transform duration-300 ease-out"
-          style={{ transform: `rotate(${nav.arrowRotation}deg)` }}
-        >
-          <div className="w-2 h-32 bg-primary rounded-t-full shadow-lg relative mt-6">
-            <div className="absolute -top-4 -left-3 w-0 h-0 border-l-[16px] border-r-[16px] border-b-[24px] border-l-transparent border-r-transparent border-b-primary" />
-          </div>
-        </div>
+      <div className="w-full max-w-sm mb-6">
+        <OrientationMap
+          floor={floor}
+          nav={nav}
+          routePoints={nav.leg.points}
+          destination={destination}
+        />
       </div>
 
-      <div className="flex gap-4 mb-16 w-full max-w-sm">
+      <div className="flex gap-4 mb-8 w-full max-w-sm">
         <Button variant="outline" size="lg" className="flex-1 rounded-full h-14" onClick={() => nav.adjustHeading(-15)}>
-          <RotateCcw className="w-5 h-5 mr-2" /> -15°
+          <RotateCcw className="w-5 h-5 mr-2" /> Rotate Left
         </Button>
         <Button variant="outline" size="lg" className="flex-1 rounded-full h-14" onClick={() => nav.adjustHeading(15)}>
-          +15° <RotateCw className="w-5 h-5 ml-2" />
+          Rotate Right <RotateCw className="w-5 h-5 ml-2" />
         </Button>
       </div>
 
       <Button size="lg" className="w-full max-w-sm rounded-full h-16 text-lg shadow-lg shadow-primary/25" onClick={onStart}>
-        Looks Good, Let's Go
+        Start Walking
       </Button>
     </div>
   );
@@ -398,7 +517,14 @@ function NavigateInner({
   const [started, setStarted] = useState(false);
 
   if (!started) {
-    return <CalibrationScreen nav={nav} onStart={() => setStarted(true)} />;
+    return (
+      <CalibrationScreen
+        nav={nav}
+        building={building}
+        destination={destination}
+        onStart={() => setStarted(true)}
+      />
+    );
   }
 
   return (
