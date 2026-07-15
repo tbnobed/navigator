@@ -223,6 +223,19 @@ app.put('/api/admin/sites/:id', requireAdmin, (req, res) => {
     res.status(400).json({ error: 'Invalid image reference' });
     return;
   }
+  if (
+    incoming.posterLogoFile !== undefined &&
+    incoming.posterLogoFile !== null &&
+    !incoming.posterLogoFile.startsWith(`${incoming.id}-logo-`)
+  ) {
+    res.status(400).json({ error: 'Invalid logo reference' });
+    return;
+  }
+  // Remove the stored logo file if the site no longer references it.
+  const prevLogo = sites[idx].posterLogoFile;
+  if (prevLogo && incoming.posterLogoFile !== prevLogo) {
+    fs.rm(path.join(UPLOADS_DIR, path.basename(prevLogo)), { force: true }, () => {});
+  }
   incoming.updatedAt = new Date().toISOString();
   sites[idx] = incoming;
   saveSites(sites);
@@ -239,6 +252,9 @@ app.delete('/api/admin/sites/:id', requireAdmin, (req, res) => {
   saveSites(sites.filter((s) => s.id !== req.params.id));
   if (site.imageFile) {
     fs.rm(path.join(UPLOADS_DIR, path.basename(site.imageFile)), { force: true }, () => {});
+  }
+  if (site.posterLogoFile) {
+    fs.rm(path.join(UPLOADS_DIR, path.basename(site.posterLogoFile)), { force: true }, () => {});
   }
   res.json({ ok: true });
 });
@@ -277,6 +293,43 @@ app.post('/api/admin/sites/:id/image', requireAdmin, (req, res) => {
       fs.rm(path.join(UPLOADS_DIR, path.basename(site.imageFile)), { force: true }, () => {});
     }
     res.json({ imageFile: req.file.filename });
+  });
+});
+
+const logoUpload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (req, file, cb) => {
+      const ext = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp' }[
+        file.mimetype
+      ];
+      if (!ext) {
+        cb(new Error('Only PNG, JPEG or WebP images are allowed'), '');
+        return;
+      }
+      cb(null, `${req.params.id}-logo-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+app.post('/api/admin/sites/:id/logo', requireAdmin, (req, res) => {
+  const sites = loadSites();
+  const site = sites.find((s) => s.id === req.params.id);
+  if (!site) {
+    res.status(404).json({ error: 'Site not found' });
+    return;
+  }
+  logoUpload.single('image')(req, res, (err: unknown) => {
+    if (err || !req.file) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+      return;
+    }
+    // Remove the previous logo, if any.
+    if (site.posterLogoFile) {
+      fs.rm(path.join(UPLOADS_DIR, path.basename(site.posterLogoFile)), { force: true }, () => {});
+    }
+    res.json({ logoFile: req.file.filename });
   });
 });
 

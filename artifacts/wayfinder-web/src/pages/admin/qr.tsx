@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { api, storedToBuilding } from "@/lib/sites";
+import { api, storedToBuilding, uploadUrl } from "@/lib/sites";
 import { buildings as staticBuildings } from "@/lib/buildings";
 import type { Building } from "@/lib/buildings";
 import type { StoredSite } from "@/lib/siteTypes";
@@ -39,6 +39,7 @@ export default function AdminQRPosters() {
     );
   }
 
+  const storedById = new Map((sites.data?.sites ?? []).map((s) => [s.id, s]));
   const dynamic = (sites.data?.sites ?? [])
     .map(storedToBuilding)
     .filter((b): b is Building => b !== null);
@@ -77,8 +78,12 @@ export default function AdminQRPosters() {
 
       {/* Posters */}
       <div className="p-8 print:p-0 print:m-0 space-y-24 print:space-y-0">
-        {buildings.flatMap(bldg =>
-          bldg.entrances.map(ent => {
+        {buildings.flatMap(bldg => {
+          const stored = storedById.get(bldg.id);
+          const posterTitle = stored?.posterTitle?.trim() || "Wayfinder";
+          const posterLogo = stored?.posterLogoFile ? uploadUrl(stored.posterLogoFile) : null;
+          const accent = stored?.posterAccentColor || "#0f172a";
+          return bldg.entrances.map(ent => {
             const url = `${baseUrl}/?b=${bldg.id}&e=${ent.nodeId}`;
             return (
               <div
@@ -86,7 +91,15 @@ export default function AdminQRPosters() {
                 className="max-w-2xl mx-auto bg-white text-black p-16 rounded-3xl shadow-xl print:shadow-none print:rounded-none print:w-[100vw] print:h-[100vh] print:max-w-none flex flex-col items-center justify-center break-after-page"
               >
                 <div className="text-center mb-16">
-                  <h1 className="text-6xl font-extrabold tracking-tighter mb-4 text-slate-900">Wayfinder</h1>
+                  {posterLogo && (
+                    <img
+                      src={posterLogo}
+                      alt={`${posterTitle} logo`}
+                      className="h-24 mx-auto mb-6 object-contain"
+                      data-testid={`img-poster-logo-${bldg.id}`}
+                    />
+                  )}
+                  <h1 className="text-6xl font-extrabold tracking-tighter mb-4" style={{ color: accent }}>{posterTitle}</h1>
                   <h2 className="text-3xl font-medium text-slate-600 mb-2">{bldg.name}</h2>
                   <h3 className="text-4xl font-bold text-slate-800">{ent.label}</h3>
                 </div>
@@ -97,7 +110,7 @@ export default function AdminQRPosters() {
                     size={400}
                     level="H"
                     includeMargin={false}
-                    fgColor="#0f172a"
+                    fgColor={accent}
                   />
                 </div>
 
@@ -113,8 +126,8 @@ export default function AdminQRPosters() {
                 </div>
               </div>
             );
-          })
-        )}
+          });
+        })}
       </div>
     </div>
   );

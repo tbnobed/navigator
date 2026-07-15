@@ -37,6 +37,12 @@ export interface StoredSite {
   edges: StoredSiteEdge[];
   /** Only published sites are visible to visitors. */
   published: boolean;
+  /** Optional poster branding — title shown on printed QR posters (falls back to "Wayfinder"). */
+  posterTitle?: string;
+  /** Optional uploaded logo file name (in the server uploads dir) shown on posters. */
+  posterLogoFile?: string | null;
+  /** Optional accent color (hex) for the poster title and QR code. */
+  posterAccentColor?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +68,20 @@ export function validateStoredSite(s: unknown): s is StoredSite {
     if (!ids.has(e?.a) || !ids.has(e?.b) || e.a === e.b) return false;
   }
   if (typeof site.published !== 'boolean') return false;
+  if (site.posterTitle !== undefined && typeof site.posterTitle !== 'string') return false;
+  if (
+    site.posterLogoFile !== undefined &&
+    site.posterLogoFile !== null &&
+    typeof site.posterLogoFile !== 'string'
+  )
+    return false;
+  if (site.posterAccentColor !== undefined) {
+    if (
+      typeof site.posterAccentColor !== 'string' ||
+      !/^#[0-9a-fA-F]{6}$/.test(site.posterAccentColor)
+    )
+      return false;
+  }
   return true;
 }
 

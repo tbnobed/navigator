@@ -73,6 +73,7 @@ export default function AdminEditor() {
   const [scaleMeters, setScaleMeters] = useState("");
   const svgRef = useRef<SVGSVGElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   const query = useQuery({
     queryKey: ["admin-site", siteId],
@@ -145,6 +146,21 @@ export default function AdminEditor() {
       });
       update({ imageFile, imageWidth: dims.w, imageHeight: dims.h });
       toast({ title: "Floor plan uploaded", description: "Now set the scale, then draw your map. Don't forget to save." });
+    } catch (err) {
+      toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    const form = new FormData();
+    form.append("image", file);
+    try {
+      const { logoFile } = await api<{ logoFile: string }>(`/admin/sites/${siteId}/logo`, {
+        method: "POST",
+        body: form,
+      });
+      update({ posterLogoFile: logoFile });
+      toast({ title: "Logo uploaded", description: "It will appear on printed QR posters. Don't forget to save." });
     } catch (err) {
       toast({ title: "Upload failed", description: (err as Error).message, variant: "destructive" });
     }
@@ -570,6 +586,90 @@ export default function AdminEditor() {
               </ol>
             </div>
           )}
+
+          {/* Poster branding */}
+          <div className="space-y-3">
+            <h3 className="font-bold">Poster branding</h3>
+            <p className="text-xs text-muted-foreground">
+              Customize the printed QR posters for this site. Leave blank to use the default
+              "Wayfinder" branding.
+            </p>
+            <div className="space-y-2">
+              <Label>Poster title</Label>
+              <Input
+                value={draft.posterTitle ?? ""}
+                onChange={(e) => update({ posterTitle: e.target.value })}
+                placeholder="Wayfinder"
+                className="rounded-xl"
+                data-testid="input-poster-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Accent color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={draft.posterAccentColor ?? "#0f172a"}
+                  onChange={(e) => update({ posterAccentColor: e.target.value })}
+                  className="h-9 w-12 rounded-lg border cursor-pointer bg-transparent p-1"
+                  data-testid="input-poster-accent"
+                />
+                <span className="text-xs font-mono text-muted-foreground">
+                  {draft.posterAccentColor ?? "#0f172a"}
+                </span>
+                {draft.posterAccentColor && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl ml-auto"
+                    onClick={() => update({ posterAccentColor: undefined })}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Logo</Label>
+              {draft.posterLogoFile ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={uploadUrl(draft.posterLogoFile)}
+                    alt="Poster logo"
+                    className="h-12 w-12 object-contain rounded-lg border bg-white"
+                    data-testid="img-poster-logo"
+                  />
+                  <Button variant="outline" size="sm" className="rounded-xl" onClick={() => logoRef.current?.click()}>
+                    Replace
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl text-muted-foreground hover:text-destructive"
+                    onClick={() => update({ posterLogoFile: null })}
+                    data-testid="button-remove-logo"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => logoRef.current?.click()} data-testid="button-upload-logo">
+                  <Upload className="w-4 h-4 mr-1.5" /> Upload logo
+                </Button>
+              )}
+              <input
+                ref={logoRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleLogoUpload(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </div>
 
           {/* Validation */}
           {validation && (
