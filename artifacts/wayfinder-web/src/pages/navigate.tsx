@@ -56,6 +56,14 @@ function MapView({
 
   return (
     <div className="absolute inset-0 bg-[#0f172a] overflow-hidden">
+      {/* Heading-up rotation: spin the whole map around the user (screen
+          center) so the walking direction always points up, like car nav.
+          The facing cone inside the map is rotated +facing, so it cancels
+          out and always points straight up on screen. */}
+      <div
+        className="absolute inset-0 transition-transform duration-500 ease-out"
+        style={{ transform: `rotate(${-nav.facingFloorplanBearing}deg)`, transformOrigin: '50% 50%' }}
+      >
       <div 
         className="absolute transition-transform duration-500 ease-out"
         style={{
@@ -127,6 +135,7 @@ function MapView({
             </linearGradient>
           </defs>
         </svg>
+      </div>
       </div>
     </div>
   );
