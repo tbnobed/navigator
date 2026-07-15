@@ -7,7 +7,9 @@
 #   docker run -d -p 8080:3000 -e ADMIN_PASSWORD=change-me \
 #     -v wayfinder-data:/data --name wayfinder wayfinder-web
 
-FROM node:22-alpine
+# Debian-based (glibc) image — this monorepo excludes musl/Alpine native
+# binaries (rollup, esbuild, tailwind oxide), so alpine images cannot build it.
+FROM node:22-slim
 
 # Pin pnpm to the same major version the project is developed with —
 # newer majors turn the "ignored build scripts" warning into a hard error.
