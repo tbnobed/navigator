@@ -4,7 +4,6 @@ import { getNode, type Building, type BuildingNode } from "@/lib/buildings";
 import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { findShortestPath, buildRoute } from "@/lib/routing";
 import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
-import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { useCameraStream } from "@/hooks/useCameraStream";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -199,24 +198,11 @@ function ActiveNavigation({
               muted 
               playsInline 
             />
-            {/* Floor-painted path over the camera view, plus the directional
-                arrow for at-a-glance guidance. */}
+            {/* Directional arrow for at-a-glance guidance (floor-painted
+                path is mobile-app only — browser sensors proved too
+                unreliable for it). */}
             {cameraStatus === 'active' && (
-              <ARPathOverlay
-                points={nav.upcomingPoints}
-                userX={nav.position.x}
-                userY={nav.position.y}
-                facingBearing={nav.facingFloorplanBearing}
-                devicePitch={nav.devicePitch}
-                width={size.w}
-                height={size.h}
-                color="hsl(var(--primary))"
-              />
-            )}
-            {/* Arrow sits in the upper third so the floor-painted path in the
-                lower half of the frame stays visible. */}
-            {cameraStatus === 'active' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-[35vh]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <div
                   className="transition-transform duration-300 ease-out drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
                   style={{ transform: `rotate(${nav.arrowRotation}deg)` }}
