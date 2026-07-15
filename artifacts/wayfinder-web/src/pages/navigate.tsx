@@ -5,7 +5,6 @@ import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { findShortestPath, buildRoute } from "@/lib/routing";
 import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
 import { useCameraStream } from "@/hooks/useCameraStream";
-import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -161,17 +160,29 @@ function ActiveNavigation({
               muted 
               playsInline 
             />
+            {/* Floor-painted path overlay disabled for now (projection scale
+                issues on device) — a big directional arrow guides instead.
+                TODO: revisit ARPathOverlay ground-plane projection. */}
             {cameraStatus === 'active' && (
-              <ARPathOverlay 
-                points={nav.upcomingPoints} 
-                userX={nav.position.x} 
-                userY={nav.position.y} 
-                facingBearing={nav.facingFloorplanBearing} 
-                devicePitch={nav.devicePitch}
-                width={size.w} 
-                height={size.h} 
-                color="hsl(var(--primary))" 
-              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div
+                  className="transition-transform duration-300 ease-out drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
+                  style={{ transform: `rotate(${nav.arrowRotation}deg)` }}
+                >
+                  <Navigation
+                    className="w-32 h-32 text-primary -rotate-45"
+                    fill="currentColor"
+                    strokeWidth={1}
+                  />
+                </div>
+                <p className="mt-6 text-white text-lg font-bold bg-black/50 backdrop-blur-md px-5 py-2 rounded-full border border-white/10">
+                  {Math.round(nav.arrowRotation) === 0 || Math.abs(nav.arrowRotation) < 20
+                    ? 'Straight ahead'
+                    : nav.arrowRotation > 0
+                      ? 'Turn right'
+                      : 'Turn left'}
+                </p>
+              </div>
             )}
             {cameraStatus !== 'active' && (
               <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
