@@ -29,6 +29,19 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
     setError(null);
     try {
       await api("/admin/login", { method: "POST", body: JSON.stringify({ password }) });
+      // Verify the session cookie actually stuck. Over plain HTTP the browser
+      // silently drops the Secure cookie, which otherwise looks like nothing happened.
+      const me = await api<{ authenticated: boolean }>("/admin/me");
+      if (!me.authenticated) {
+        if (window.location.protocol !== "https:") {
+          setError(
+            "Password accepted, but the session couldn't be saved because this page is not using HTTPS. Open the site via https:// and try again.",
+          );
+        } else {
+          setError("Password accepted, but the session couldn't be saved. Check that cookies are allowed for this site.");
+        }
+        return;
+      }
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
