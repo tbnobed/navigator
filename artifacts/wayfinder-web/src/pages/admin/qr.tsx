@@ -88,36 +88,37 @@ export default function AdminQRPosters() {
             return (
               <div
                 key={`${bldg.id}-${ent.nodeId}`}
-                className="max-w-2xl mx-auto bg-white text-black p-16 rounded-3xl shadow-xl print:shadow-none print:rounded-none print:w-[100vw] print:h-[100vh] print:max-w-none flex flex-col items-center justify-center break-after-page"
+                className="max-w-2xl mx-auto bg-white text-black p-16 rounded-3xl shadow-xl print:shadow-none print:rounded-none print:max-w-none print:w-full print:h-auto print:p-6 flex flex-col items-center justify-center print:justify-start break-after-page break-inside-avoid"
               >
-                <div className="text-center mb-16">
+                <div className="text-center mb-16 print:mb-8">
                   {posterLogo && (
                     <img
                       src={posterLogo}
                       alt={`${posterTitle} logo`}
-                      className="h-24 mx-auto mb-6 object-contain"
+                      className="h-24 print:h-20 mx-auto mb-6 print:mb-4 object-contain"
                       data-testid={`img-poster-logo-${bldg.id}`}
                     />
                   )}
-                  <h1 className="text-6xl font-extrabold tracking-tighter mb-4" style={{ color: accent }}>{posterTitle}</h1>
-                  <h2 className="text-3xl font-medium text-slate-600 mb-2">{bldg.name}</h2>
-                  <h3 className="text-4xl font-bold text-slate-800">{ent.label}</h3>
+                  <h1 className="text-6xl print:text-5xl font-extrabold tracking-tighter mb-4 print:mb-2" style={{ color: accent }}>{posterTitle}</h1>
+                  <h2 className="text-3xl print:text-2xl font-medium text-slate-600 mb-2">{bldg.name}</h2>
+                  <h3 className="text-4xl print:text-3xl font-bold text-slate-800">{ent.label}</h3>
                 </div>
 
-                <div className="bg-white p-8 rounded-3xl border-4 border-slate-100 shadow-2xl mb-16">
+                <div className="bg-white p-8 print:p-5 rounded-3xl border-4 border-slate-100 shadow-2xl mb-16 print:mb-8">
                   <QRCodeSVG
                     value={url}
                     size={400}
                     level="H"
                     includeMargin={false}
                     fgColor={accent}
+                    className="print:w-[320px] print:h-[320px]"
                   />
                 </div>
 
-                <div className="text-center space-y-4">
-                  <p className="text-3xl font-bold text-slate-800 tracking-tight">Scan to start navigating</p>
-                  <p className="text-xl text-slate-500">No app download required</p>
-                  <p className="text-lg text-slate-500 pt-4">
+                <div className="text-center space-y-4 print:space-y-2">
+                  <p className="text-3xl print:text-2xl font-bold text-slate-800 tracking-tight">Scan to start navigating</p>
+                  <p className="text-xl print:text-lg text-slate-500">No app download required</p>
+                  <p className="text-lg print:text-base text-slate-500 pt-4 print:pt-2">
                     Camera not working? Open the site and enter code{" "}
                     <span className="font-mono font-bold text-slate-800">
                       {ent.qrValue.replace("INDOORA://", "")}

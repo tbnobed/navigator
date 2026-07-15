@@ -135,3 +135,15 @@
     text-wrap: balance;
   }
 }
+
+/* QR poster printing: consistent page margins, no color stripping */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.5in;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
