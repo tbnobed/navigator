@@ -210,6 +210,14 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     currentInstruction,
     simulate,
     setSimulate,
+    /** Raw values for the on-screen sensor debug panel. */
+    debug: {
+      headingOffset,
+      manualAdjust,
+      distanceAlong,
+      motionPermission: motion.permission,
+      orientationPermission: compass.permission,
+    },
     confirmTransition,
     skipToNextWaypoint,
     reset,

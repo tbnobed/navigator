@@ -4,6 +4,7 @@ import { getNode, type Building, type BuildingNode } from "@/lib/buildings";
 import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { findShortestPath, buildRoute } from "@/lib/routing";
 import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
+import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { useCameraStream } from "@/hooks/useCameraStream";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -143,6 +144,7 @@ function ActiveNavigation({
   onExit: () => void;
 }) {
   const [viewMode, setViewMode] = useState<'ar' | 'map'>('ar');
+  const [debugMode, setDebugMode] = useState(false);
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
 
   useEffect(() => {
@@ -186,7 +188,20 @@ function ActiveNavigation({
             />
             {/* Floor-painted path overlay disabled for now (projection scale
                 issues on device) — a big directional arrow guides instead.
-                TODO: revisit ARPathOverlay ground-plane projection. */}
+                Shown in debug mode so on-device capture sessions can compare
+                the drawn path against the real corridor. */}
+            {cameraStatus === 'active' && debugMode && (
+              <ARPathOverlay
+                points={nav.upcomingPoints}
+                userX={nav.position.x}
+                userY={nav.position.y}
+                facingBearing={nav.facingFloorplanBearing}
+                devicePitch={nav.devicePitch}
+                width={size.w}
+                height={size.h}
+                color="hsl(var(--primary))"
+              />
+            )}
             {cameraStatus === 'active' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <div
@@ -304,15 +319,42 @@ function ActiveNavigation({
         </div>
 
         {/* Demo Controls */}
-        <div className="glass-panel bg-black/60 border border-white/10 p-4 rounded-3xl pointer-events-auto flex items-center justify-between text-white">
-          <span className="text-sm font-medium text-white/80">Simulate walking (Demo)</span>
-          <Switch 
-            checked={nav.simulate} 
-            onCheckedChange={nav.setSimulate} 
-            className="data-[state=checked]:bg-primary"
-          />
+        <div className="glass-panel bg-black/60 border border-white/10 p-4 rounded-3xl pointer-events-auto text-white">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-white/80">Simulate walking (Demo)</span>
+            <Switch 
+              checked={nav.simulate} 
+              onCheckedChange={nav.setSimulate} 
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-sm font-medium text-white/80">Sensor debug</span>
+            <Switch
+              checked={debugMode}
+              onCheckedChange={setDebugMode}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Sensor debug readout — for on-device AR capture sessions */}
+      {debugMode && (
+        <div className="absolute top-36 left-4 z-20 bg-black/70 backdrop-blur-md text-white text-[11px] font-mono rounded-xl p-3 leading-relaxed pointer-events-none border border-white/10">
+          <div>heading (raw): {nav.heading === null ? 'null' : nav.heading.toFixed(1) + '°'}</div>
+          <div>pitch (beta): {nav.devicePitch === null ? 'null' : nav.devicePitch.toFixed(1) + '°'}</div>
+          <div>offset: {nav.debug.headingOffset === null ? 'null' : nav.debug.headingOffset.toFixed(1) + '°'}</div>
+          <div>manual adj: {nav.debug.manualAdjust.toFixed(0)}°</div>
+          <div>facing (plan): {nav.facingFloorplanBearing.toFixed(1)}°</div>
+          <div>target (plan): {nav.targetFloorplanBearing.toFixed(1)}°</div>
+          <div>arrow: {nav.arrowRotation.toFixed(1)}°</div>
+          <div>pos: {nav.position.x.toFixed(1)}, {nav.position.y.toFixed(1)} m</div>
+          <div>walked (leg): {nav.debug.distanceAlong.toFixed(1)} m</div>
+          <div>perm M/O: {nav.debug.motionPermission}/{nav.debug.orientationPermission}</div>
+          <div>compass: {nav.headingAvailable ? 'live' : 'NO DATA'} · steps: {nav.stepDetectionAvailable ? 'live' : 'NO DATA'}</div>
+        </div>
+      )}
     </div>
   );
 }
