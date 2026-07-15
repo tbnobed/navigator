@@ -16,6 +16,7 @@ import type { Building, BuildingNode } from '@/constants/buildings';
 import { buildRoute, findShortestPath } from '@/lib/routing';
 import type { Route } from '@/lib/routing';
 import { useIndoorNavigation } from '@/hooks/useIndoorNavigation';
+import { useDevicePitch } from '@/hooks/useDevicePitch';
 import type { IndoorNavState } from '@/hooks/useIndoorNavigation';
 
 const SCREEN = Dimensions.get('window');
@@ -88,6 +89,7 @@ function NavigateContent({
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [calibrating, setCalibrating] = useState(true);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const devicePitch = useDevicePitch(viewMode === 'ar');
 
   const floor = building.floors.find((f) => f.level === nav.floor)!;
   const floorNodes = building.nodes.filter((n) => n.floor === nav.floor);
@@ -255,6 +257,7 @@ function NavigateContent({
           userX={nav.position.x}
           userY={nav.position.y}
           facingBearing={nav.facingFloorplanBearing}
+          devicePitch={devicePitch}
           width={SCREEN.width}
           height={SCREEN.height}
         />

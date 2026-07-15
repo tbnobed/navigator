@@ -155,7 +155,6 @@ function ActiveNavigation({
   onContinueFrom: () => void;
 }) {
   const [viewMode, setViewMode] = useState<'ar' | 'map'>('ar');
-  const [debugMode, setDebugMode] = useState(false);
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight });
 
   useEffect(() => {
@@ -342,33 +341,8 @@ function ActiveNavigation({
               className="data-[state=checked]:bg-primary"
             />
           </div>
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-sm font-medium text-white/80">Sensor debug</span>
-            <Switch
-              checked={debugMode}
-              onCheckedChange={setDebugMode}
-              className="data-[state=checked]:bg-primary"
-            />
-          </div>
         </div>
       </div>
-
-      {/* Sensor debug readout — for on-device AR capture sessions */}
-      {debugMode && (
-        <div className="absolute top-36 left-4 z-20 bg-black/70 backdrop-blur-md text-white text-[11px] font-mono rounded-xl p-3 leading-relaxed pointer-events-none border border-white/10">
-          <div>heading (raw): {nav.heading === null ? 'null' : nav.heading.toFixed(1) + '°'}</div>
-          <div>pitch (beta): {nav.devicePitch === null ? 'null' : nav.devicePitch.toFixed(1) + '°'}</div>
-          <div>offset: {nav.debug.headingOffset === null ? 'null' : nav.debug.headingOffset.toFixed(1) + '°'}</div>
-          <div>manual adj: {nav.debug.manualAdjust.toFixed(0)}°</div>
-          <div>facing (plan): {nav.facingFloorplanBearing.toFixed(1)}°</div>
-          <div>target (plan): {nav.targetFloorplanBearing.toFixed(1)}°</div>
-          <div>arrow: {nav.arrowRotation.toFixed(1)}°</div>
-          <div>pos: {nav.position.x.toFixed(1)}, {nav.position.y.toFixed(1)} m</div>
-          <div>walked (leg): {nav.debug.distanceAlong.toFixed(1)} m</div>
-          <div>perm M/O: {nav.debug.motionPermission}/{nav.debug.orientationPermission}</div>
-          <div>compass: {nav.headingAvailable ? 'live' : 'NO DATA'} · steps: {nav.stepDetectionAvailable ? 'live' : 'NO DATA'}</div>
-        </div>
-      )}
     </div>
   );
 }
