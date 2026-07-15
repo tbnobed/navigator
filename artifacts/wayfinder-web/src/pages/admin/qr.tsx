@@ -3,6 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { api, storedToBuilding, uploadUrl } from "@/lib/sites";
+import { BrandLogo } from "@/components/BrandLogo";
 import { buildings as staticBuildings } from "@/lib/buildings";
 import type { Building } from "@/lib/buildings";
 import type { StoredSite } from "@/lib/siteTypes";
@@ -59,9 +60,12 @@ export default function AdminQRPosters() {
         <Button variant="ghost" size="icon" onClick={() => setLocation("/admin")} className="rounded-full" data-testid="button-back-admin">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-bold text-lg">
-          Print QR Codes{siteFilter && buildings[0] ? ` — ${buildings[0].name}` : ""}
-        </h1>
+        <div className="flex items-center gap-3">
+          <BrandLogo className="h-5" />
+          <h1 className="font-bold text-lg">
+            Print QR Codes{siteFilter && buildings[0] ? ` — ${buildings[0].name}` : ""}
+          </h1>
+        </div>
         <Button onClick={handlePrint} className="rounded-full" data-testid="button-print-posters">
           <Printer className="w-4 h-4 mr-2" />
           Print Posters

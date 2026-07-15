@@ -8,6 +8,7 @@ import { useCameraStream } from "@/hooks/useCameraStream";
 import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Map, Video, ArrowLeft, ArrowUp, Compass, Navigation, CheckCircle2, RotateCcw, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -194,6 +195,10 @@ function ActiveNavigation({
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
+
+        <div className="bg-white/85 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg flex items-center">
+          <BrandLogo className="h-4" link={false} />
+        </div>
 
         <div className="flex bg-black/50 backdrop-blur-md p-1 rounded-full shadow-lg border border-white/10 pointer-events-auto">
           <button 
@@ -400,6 +405,9 @@ function CalibrationScreen({
           <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping opacity-50" style={{ animationDuration: '3s' }} />
         </div>
         
+        <div className="mb-8">
+          <BrandLogo className="h-6" link={false} />
+        </div>
         <h1 className="text-3xl font-extrabold tracking-tight mb-4 text-balance">
           Ready to Walk?
         </h1>
@@ -418,6 +426,9 @@ function CalibrationScreen({
 
   return (
     <div className="absolute inset-0 bg-background flex flex-col items-center justify-center p-6 text-center safe-area-pt safe-area-pb z-50 overflow-y-auto">
+      <div className="mb-6">
+        <BrandLogo className="h-6" link={false} />
+      </div>
       <h1 className="text-3xl font-extrabold tracking-tight mb-2">Check Your Direction</h1>
       <p className="text-muted-foreground mb-6 max-w-sm">
         The blue beam shows which way we think you're facing. If it doesn't match

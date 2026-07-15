@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { BrandLogo } from "@/components/BrandLogo";
 import { getPois, BuildingNode } from "@/lib/buildings";
 import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,9 @@ export default function Destination() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Where to?</h1>
           <p className="text-sm text-muted-foreground font-medium">Select a destination</p>
+        </div>
+        <div className="ml-auto">
+          <BrandLogo className="h-5" />
         </div>
       </div>
 
