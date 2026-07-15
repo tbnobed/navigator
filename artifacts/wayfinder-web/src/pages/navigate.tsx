@@ -167,6 +167,7 @@ function ActiveNavigation({
                 userX={nav.position.x} 
                 userY={nav.position.y} 
                 facingBearing={nav.facingFloorplanBearing} 
+                devicePitch={nav.devicePitch}
                 width={size.w} 
                 height={size.h} 
                 color="hsl(var(--primary))" 

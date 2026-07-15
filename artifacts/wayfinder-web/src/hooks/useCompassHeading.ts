@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  */
 export function useCompassHeading() {
   const [heading, setHeading] = useState<number | null>(null);
+  /** Front-back tilt (deviceorientation beta, degrees): ~90 = held upright, ~0 = flat on back. */
+  const [pitch, setPitch] = useState<number | null>(null);
   const [permission, setPermission] = useState<'unknown' | 'granted' | 'denied' | 'unsupported'>(
     'unknown',
   );
@@ -21,14 +23,39 @@ export function useCompassHeading() {
     if (listeningRef.current) return;
     listeningRef.current = true;
 
+    // Orientation events fire at up to ~60Hz on two listeners at once; pushing
+    // every sample into React state re-renders the whole nav screen (and the
+    // AR overlay's projection) per event. Buffer the latest values and flush
+    // once per animation frame, skipping sub-degree jitter.
+    let latestHeading: number | null = null;
+    let latestPitch: number | null = null;
+    let rafId: number | null = null;
+    let lastHeading = Number.NaN;
+    let lastPitch = Number.NaN;
+    const flush = () => {
+      rafId = null;
+      if (latestHeading !== null) {
+        const delta = Math.abs(((latestHeading - lastHeading + 540) % 360) - 180);
+        if (Number.isNaN(lastHeading) || delta > 0.5) {
+          lastHeading = latestHeading;
+          setHeading(latestHeading);
+        }
+      }
+      if (latestPitch !== null && (Number.isNaN(lastPitch) || Math.abs(latestPitch - lastPitch) > 0.5)) {
+        lastPitch = latestPitch;
+        setPitch(latestPitch);
+      }
+    };
     const handler = (e: DeviceOrientationEvent) => {
       const webkitHeading = (e as unknown as { webkitCompassHeading?: number }).webkitCompassHeading;
       if (typeof webkitHeading === 'number' && !Number.isNaN(webkitHeading)) {
-        setHeading(webkitHeading);
+        latestHeading = webkitHeading;
       } else if (e.absolute && e.alpha !== null) {
         // alpha: 0 = facing north, increases counter-clockwise → convert to CW compass.
-        setHeading((360 - e.alpha) % 360);
+        latestHeading = (360 - e.alpha) % 360;
       }
+      if (e.beta !== null) latestPitch = e.beta;
+      if (rafId === null) rafId = requestAnimationFrame(flush);
     };
 
     // iOS delivers webkitCompassHeading on the regular event; Android Chrome
@@ -38,6 +65,7 @@ export function useCompassHeading() {
     cleanupRef.current = () => {
       window.removeEventListener('deviceorientationabsolute', handler as EventListener, true);
       window.removeEventListener('deviceorientation', handler as EventListener, true);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, []);
 
@@ -81,5 +109,5 @@ export function useCompassHeading() {
     };
   }, []);
 
-  return { heading, permission, requestPermission, available: heading !== null };
+  return { heading, pitch, permission, requestPermission, available: heading !== null };
 }

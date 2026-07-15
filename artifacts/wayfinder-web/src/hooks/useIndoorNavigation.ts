@@ -165,6 +165,8 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     awaitingTransition,
     transition: leg.transition,
     heading,
+    /** Phone front-back tilt (deviceorientation beta, degrees); null until events arrive. */
+    devicePitch: compass.pitch,
     headingAvailable: compass.available,
     stepDetectionAvailable: motion.available,
     /**
