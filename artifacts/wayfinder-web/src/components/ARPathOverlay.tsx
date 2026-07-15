@@ -143,6 +143,10 @@ export function ARPathOverlay({
       height={height}
       style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
     >
+      {/* Color is set via `style`, NOT the stroke/fill attributes: CSS
+          variables (e.g. "hsl(var(--primary))") are invalid in SVG
+          presentation attributes — browsers silently drop them and the
+          stroke falls back to none, making the whole path invisible. */}
       {segments.map((s, i) => (
         <line
           key={`glow-${i}`}
@@ -150,7 +154,7 @@ export function ARPathOverlay({
           y1={s.a.y}
           x2={s.b.x}
           y2={s.b.y}
-          stroke={color}
+          style={{ stroke: color }}
           strokeWidth={s.w * 1.8}
           strokeLinecap="round"
           opacity={0.3}
@@ -163,7 +167,7 @@ export function ARPathOverlay({
           y1={s.a.y}
           x2={s.b.x}
           y2={s.b.y}
-          stroke={color}
+          style={{ stroke: color }}
           strokeWidth={s.w}
           strokeLinecap="round"
           opacity={0.85}
@@ -173,7 +177,7 @@ export function ARPathOverlay({
         cx={nearest.x}
         cy={nearest.y}
         r={Math.min(widthAt(nearest.forward) * 0.7, 18)}
-        fill={color}
+        style={{ fill: color }}
         opacity={0.9}
       />
     </svg>

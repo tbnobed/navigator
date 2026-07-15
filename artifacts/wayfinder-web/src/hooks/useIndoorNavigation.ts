@@ -110,7 +110,13 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
   // sustained for a couple of seconds (so briefly glancing around while
   // standing still doesn't trigger it).
   const [wrongWay, setWrongWay] = useState(false);
-  const facingAway = Math.abs(arrowRotation) > 120 && !arrived && !awaitingTransition;
+  // Hysteresis: needs >120° to arm, but once armed (or triggered) only drops
+  // below 100° to clear — compass jitter around the threshold otherwise keeps
+  // resetting the 2s timer so the alert never fires.
+  const armedRef = useRef(false);
+  const away = Math.abs(arrowRotation) > (armedRef.current ? 100 : 120);
+  const facingAway = away && !arrived && !awaitingTransition;
+  armedRef.current = facingAway;
   useEffect(() => {
     if (!facingAway) {
       setWrongWay(false);
