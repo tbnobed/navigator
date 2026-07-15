@@ -5,8 +5,9 @@ import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { getBuilding, getPois } from '@/constants/buildings';
+import { getPois } from '@/constants/buildings';
 import type { BuildingNode } from '@/constants/buildings';
+import { useBuildings, getBuildingIn } from '@/lib/sites';
 
 const CATEGORY_ICON: Record<string, keyof typeof Feather.glyphMap> = {
   Studio: 'video',
@@ -21,18 +22,28 @@ export default function DestinationScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { buildingId, nodeId } = useLocalSearchParams<{ buildingId: string; nodeId: string }>();
-  const building = getBuilding(buildingId);
+  const { buildings, isLoading } = useBuildings();
+  const building = getBuildingIn(buildings, buildingId);
 
   const grouped = useMemo(() => {
     if (!building) return [] as [number, BuildingNode[]][];
     const map = new Map<number, BuildingNode[]>();
-    for (const poi of getPois(building)) {
+    // Exclude the start point itself ("navigate to where I already am").
+    for (const poi of getPois(building).filter((p) => p.id !== nodeId)) {
       const list = map.get(poi.floor) ?? [];
       list.push(poi);
       map.set(poi.floor, list);
     }
     return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
-  }, [building]);
+  }, [building, nodeId]);
+
+  if (isLoading && !building) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.mutedForeground }}>Loading location…</Text>
+      </View>
+    );
+  }
 
   if (!building) {
     return (

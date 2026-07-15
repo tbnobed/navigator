@@ -189,13 +189,13 @@ export const buildings: Building[] = [
     edges,
     entrances: [
       {
-        qrValue: 'WAYFINDER://studios/lobby',
+        qrValue: 'INDOORA://studios/lobby',
         nodeId: 'entrance_lobby',
         label: 'Lobby Entrance',
         facingBearing: 0,
       },
       {
-        qrValue: 'WAYFINDER://studios/c-lobby',
+        qrValue: 'INDOORA://studios/c-lobby',
         nodeId: 'entrance_clobby',
         label: 'C-Lobby Entrance',
         facingBearing: 270,

@@ -2,3 +2,4 @@
 - [Wayfinder admin sites architecture](wayfinder-admin-sites.md) — sites stored pixel-based in JSON, converted client-side; single-container deploy; add new site fields to stored shape + converter.
 - [AR ground projection pitfalls](ar-ground-projection.md) — SVG var() colors silently invisible; pitch rotation sign check via node sim; demo building must not shadow stored site ids.
 - [iOS sensor permissions](ios-sensor-permissions.md) — motion+orientation share one iOS permission; request sequentially, attach listeners regardless of result, trust received events over permission status.
+- [Indoora mobile API base](indoora-mobile-api.md) — sites API lives on the wayfinder-web server, not api-server; mobile uses EXPO_PUBLIC_API_URL in prod, dev-domain + /go in dev; CORS wildcard required.

@@ -103,6 +103,26 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     (((compassFacing ?? entranceFacingBearing) + manualAdjust) % 360 + 360) % 360;
   const arrowRotation = angleDiff(targetFloorplanBearing, facingFloorplanBearing);
 
+  // Wrong-way detection: facing >120° away from the route direction,
+  // sustained for a couple of seconds (so briefly glancing around while
+  // standing still doesn't trigger it).
+  const [wrongWay, setWrongWay] = useState(false);
+  // Hysteresis: needs >120° to arm, but once armed (or triggered) only drops
+  // below 100° to clear — compass jitter around the threshold otherwise keeps
+  // resetting the 2s timer so the alert never fires.
+  const armedRef = useRef(false);
+  const away = Math.abs(arrowRotation) > (armedRef.current ? 100 : 120);
+  const facingAway = away && !arrived && !awaitingTransition;
+  armedRef.current = facingAway;
+  useEffect(() => {
+    if (!facingAway) {
+      setWrongWay(false);
+      return;
+    }
+    const id = setTimeout(() => setWrongWay(true), 2000);
+    return () => clearTimeout(id);
+  }, [facingAway]);
+
   /** Rotate the user's perceived facing direction (degrees, positive = clockwise). */
   const adjustHeading = useCallback((deltaDeg: number) => {
     setManualAdjust((prev) => prev + deltaDeg);
@@ -162,6 +182,8 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     headingAvailable,
     pedometerAvailable,
     arrowRotation,
+    /** True when the user has been facing >120° away from the route for a sustained moment. */
+    wrongWay,
     targetFloorplanBearing,
     facingFloorplanBearing,
     adjustHeading,

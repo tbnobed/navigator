@@ -111,6 +111,17 @@ function requireAdmin(req: express.Request, res: express.Response, next: express
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 
+// The Indoora mobile app reads the public sites API from a different origin
+// (Expo dev preview / native builds). A wildcard origin never allows
+// credentialed requests, so the cookie-based admin auth stays same-origin.
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
 // Simple login rate limiting.
 const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 

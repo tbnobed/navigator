@@ -11,8 +11,9 @@ import { FloorPlanView } from '@/components/FloorPlanView';
 import { DirectionArrow } from '@/components/DirectionArrow';
 import { InstructionCard } from '@/components/InstructionCard';
 import { ARPathOverlay } from '@/components/ARPathOverlay';
-import { getBuilding, getNode } from '@/constants/buildings';
+import { getNode } from '@/constants/buildings';
 import type { Building, BuildingNode } from '@/constants/buildings';
+import { useBuildings, getBuildingIn } from '@/lib/sites';
 import { buildRoute, findShortestPath } from '@/lib/routing';
 import type { Route } from '@/lib/routing';
 import { useIndoorNavigation } from '@/hooks/useIndoorNavigation';
@@ -41,17 +42,29 @@ function useRoute(
 
 export default function NavigateScreen() {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const { buildingId, startNodeId, destinationNodeId } = useLocalSearchParams<{
     buildingId: string;
     startNodeId: string;
     destinationNodeId: string;
   }>();
-  const building = getBuilding(buildingId);
+  const { buildings, isLoading } = useBuildings();
+  const building = getBuildingIn(buildings, buildingId);
   const { route, destination } = useRoute(building, startNodeId, destinationNodeId);
+  // The journey can start from ANY node — an entrance (QR at the door, has a
+  // known facing bearing) or a destination (room QR / "going somewhere else"
+  // after arrival, bearing unknown → user confirms direction pre-walk).
+  const startNode = building ? getNode(building, startNodeId ?? '') : undefined;
   const facingBearing = building?.entrances.find((e) => e.nodeId === startNodeId)?.facingBearing ?? 0;
 
-  if (!building || !route || !destination) {
+  if (isLoading && !building) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.mutedForeground }}>Loading location…</Text>
+      </View>
+    );
+  }
+
+  if (!building || !route || !destination || !startNode) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <Text style={{ color: colors.foreground }}>Couldn&apos;t find a route.</Text>
@@ -67,6 +80,7 @@ export default function NavigateScreen() {
       building={building}
       route={route}
       destination={destination}
+      startNodeId={startNode.id}
       facingBearing={facingBearing}
     />
   );
@@ -76,11 +90,13 @@ function NavigateContent({
   building,
   route,
   destination,
+  startNodeId,
   facingBearing,
 }: {
   building: Building;
   route: Route;
   destination: BuildingNode;
+  startNodeId: string;
   facingBearing: number;
 }) {
   const colors = useColors();
@@ -147,10 +163,26 @@ function NavigateContent({
         <Text style={[styles.arrivedSub, { color: colors.mutedForeground }]}>{destination.label}</Text>
         <TouchableOpacity
           style={[styles.doneButton, { backgroundColor: colors.primary }]}
+          onPress={() => {
+            Haptics.selectionAsync();
+            // Continue the journey from the node we just arrived at.
+            router.replace({
+              pathname: '/destination',
+              params: { buildingId: building.id, nodeId: destination.id },
+            });
+          }}
+          testID="continue-button"
+        >
+          <Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>
+            Going somewhere else?
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.outlineButton, { borderColor: colors.border }]}
           onPress={() => router.replace('/')}
           testID="done-button"
         >
-          <Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>Done</Text>
+          <Text style={[styles.doneButtonText, { color: colors.foreground }]}>Done</Text>
         </TouchableOpacity>
       </View>
     );
@@ -183,16 +215,32 @@ function NavigateContent({
 
   if (calibrating) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background, paddingTop: insets.top }]}>
+      <View style={[styles.calibrationContainer, { backgroundColor: colors.background, paddingTop: insets.top + 8 }]}>
         {backButton()}
-        <Text style={[styles.arrivedTitle, { color: colors.foreground }]}>Set your direction</Text>
-        <Text style={[styles.arrivedSub, { color: colors.mutedForeground, maxWidth: 300 }]}>
-          Face down the hallway you&apos;re about to walk. The arrow should point the way to{' '}
-          {destination.label}. If it looks off, nudge it with the buttons below.
-        </Text>
-        <View style={styles.calibrationArrow}>
-          <DirectionArrow rotation={nav.arrowRotation} size={110} />
+        <View style={styles.calibrationHeader}>
+          <Text style={[styles.arrivedTitle, { color: colors.foreground }]}>Check your direction</Text>
+          <Text style={[styles.arrivedSub, { color: colors.mutedForeground, maxWidth: 320 }]}>
+            The highlighted beam shows which way we think you&apos;re facing. If it doesn&apos;t
+            match the way you&apos;re looking, tap the buttons to rotate it, then start walking to{' '}
+            {destination.label}.
+          </Text>
         </View>
+
+        <View style={styles.calibrationMap}>
+          <FloorPlanView
+            floor={floor}
+            nodes={floorNodes}
+            edges={floorEdges}
+            routePoints={nav.leg.points}
+            userPosition={nav.position}
+            userHeading={nav.facingFloorplanBearing}
+            destinationNodeId={destination.id}
+            showFacingBeam
+            width={SCREEN.width - 32}
+            height={SCREEN.height * 0.42}
+          />
+        </View>
+
         <View style={styles.calibrationControls}>
           <TouchableOpacity
             style={[styles.rotateButton, { backgroundColor: colors.secondary }]}
@@ -217,14 +265,16 @@ function NavigateContent({
           </Text>
         ) : null}
         <TouchableOpacity
-          style={[styles.doneButton, { backgroundColor: colors.primary }]}
+          style={[styles.doneButton, styles.calibrationStart, { backgroundColor: colors.primary }]}
           onPress={() => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setCalibrating(false);
           }}
           testID="start-walking-button"
         >
-          <Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>Start walking</Text>
+          <Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>
+            I&apos;m facing this way — start
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -274,6 +324,7 @@ function NavigateContent({
             dark
           />
         </View>
+        {nav.wrongWay ? <WrongWayBanner top={insets.top + 130} /> : null}
         <NavControls
           insetBottom={insets.bottom}
           viewMode={viewMode}
@@ -294,6 +345,7 @@ function NavigateContent({
         <Text style={[styles.destinationTitle, { color: colors.foreground }]}>{destination.label}</Text>
       </View>
       {backButton()}
+      {nav.wrongWay ? <WrongWayBanner top={insets.top + 70} /> : null}
 
       <View style={styles.mapWrap}>
         <FloorPlanView
@@ -322,6 +374,17 @@ function NavigateContent({
           onToggleSimulate={handleToggleSimulate}
           onCorrect={handleCorrect}
         />
+      </View>
+    </View>
+  );
+}
+
+function WrongWayBanner({ top }: { top: number }) {
+  return (
+    <View style={[styles.wrongWayWrap, { top }]} pointerEvents="none">
+      <View style={styles.wrongWayBanner}>
+        <Feather name="rotate-ccw" size={18} color="#fff" />
+        <Text style={styles.wrongWayText}>Wrong way — turn around</Text>
       </View>
     </View>
   );
@@ -405,6 +468,13 @@ const styles = StyleSheet.create({
   arrivedTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center', fontFamily: 'Inter_700Bold' },
   arrivedSub: { fontSize: 14, marginTop: 6, textAlign: 'center', fontFamily: 'Inter_400Regular' },
   doneButton: { marginTop: 28, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 999 },
+  outlineButton: {
+    marginTop: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   doneButtonText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   arContainer: { flex: 1, backgroundColor: '#000' },
   arArrowWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
@@ -425,8 +495,27 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
-  calibrationArrow: { marginVertical: 28 },
+  calibrationContainer: { flex: 1, alignItems: 'center', paddingHorizontal: 16 },
+  calibrationHeader: { alignItems: 'center', paddingTop: 8, paddingHorizontal: 8 },
+  calibrationMap: { marginVertical: 20, alignItems: 'center' },
+  calibrationStart: { marginTop: 16 },
   calibrationControls: { flexDirection: 'row', gap: 16 },
+  wrongWayWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 20 },
+  wrongWayBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(220,38,38,0.95)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  wrongWayText: { color: '#fff', fontSize: 14, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   rotateButton: {
     flexDirection: 'row',
     alignItems: 'center',

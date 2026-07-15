@@ -14,6 +14,8 @@ interface Props {
   destinationNodeId?: string;
   width: number;
   height: number;
+  /** When true, draw a long facing "beam" from the user (pre-walk calibration). */
+  showFacingBeam?: boolean;
 }
 
 export function FloorPlanView({
@@ -26,6 +28,7 @@ export function FloorPlanView({
   destinationNodeId,
   width,
   height,
+  showFacingBeam,
 }: Props) {
   const colors = useColors();
   const scale = Math.min(width / floor.width, height / floor.height);
@@ -132,6 +135,13 @@ export function FloorPlanView({
           })}
 
         <G transform={`translate(${user.x}, ${user.y}) rotate(${userHeading})`}>
+          {showFacingBeam ? (
+            <Polygon
+              points="0,-64 -20,0 20,0"
+              fill={colors.accent}
+              opacity={0.28}
+            />
+          ) : null}
           <Circle cx={0} cy={0} r={18} fill={colors.primary} opacity={0.16} />
           <Polygon points="0,-11 8,9 0,4 -8,9" fill={colors.primary} stroke={colors.card} strokeWidth={1.5} />
         </G>
