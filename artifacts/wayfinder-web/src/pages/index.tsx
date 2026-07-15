@@ -117,10 +117,11 @@ export default function Home() {
     );
   }
 
-  // If no params, offer QR scan / site code entry / manual entrance browse.
+  // If no params, offer QR scan / site code entry. Entrances stay hidden
+  // until a valid site is identified (scan or code).
   const visibleBuildings = siteFilter
     ? buildings.filter((bldg) => bldg.id === siteFilter)
-    : buildings;
+    : [];
 
   return (
     <div className="min-h-[100dvh] w-full flex flex-col bg-background text-foreground safe-area-pt safe-area-pb">
@@ -172,13 +173,15 @@ export default function Home() {
 
         {codeError && <p className="text-sm font-medium text-destructive px-1">{codeError}</p>}
 
-        <div className="flex items-center gap-4 pt-2">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            or browse entrances
-          </span>
-          <div className="h-px flex-1 bg-border" />
-        </div>
+        {siteFilter && (
+          <div className="flex items-center gap-4 pt-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              choose your entrance
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 pb-12 space-y-8 mt-6">
