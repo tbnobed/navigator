@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Wayfinder",
+    "name": "Indoora",
     "slug": "wayfinder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "wayfinder",
+    "scheme": "indoora",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSMotionUsageDescription": "Wayfinder counts your steps to track your position while walking through the building."
+        "NSMotionUsageDescription": "Indoora counts your steps to track your position while walking through the building."
       }
     },
     "android": {},
@@ -35,13 +35,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Wayfinder uses your camera to scan the QR code at a building entrance and to show AR wayfinding cues."
+          "cameraPermission": "Indoora uses your camera to scan the QR code at a building entrance and to show AR wayfinding cues."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Wayfinder uses your compass heading to keep the AR direction arrow pointed the right way."
+          "locationWhenInUsePermission": "Indoora uses your compass heading to keep the AR direction arrow pointed the right way."
         }
       ]
     ],

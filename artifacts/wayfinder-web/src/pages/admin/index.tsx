@@ -56,7 +56,7 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
         <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mb-6 mx-auto border border-primary/20">
           <Lock className="w-8 h-8 text-primary" />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-center mb-2">Wayfinder Admin</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-center mb-2">Indoora Admin</h1>
         <p className="text-muted-foreground text-center mb-8">Enter the admin password to manage sites.</p>
         <Input
           type="password"

@@ -9,7 +9,7 @@ import { MapPin, ArrowRight, Map as MapIcon, ChevronRight, ScanLine } from "luci
 
 /**
  * Resolve any QR payload or typed site code to { b, e } params.
- * Accepts: a full app URL with ?b=&e= params, a WAYFINDER://building/entrance
+ * Accepts: a full app URL with ?b=&e= params, an INDOORA://building/entrance
  * value, or a short "building/entrance" (or bare building id) code.
  */
 function resolveEntranceCode(buildings: Building[], raw: string): { b: string; e: string } | { b: string } | null {
@@ -26,10 +26,11 @@ function resolveEntranceCode(buildings: Building[], raw: string): { b: string; e
     // not a URL — fall through
   }
 
-  // WAYFINDER://building/entrance QR value.
+  // INDOORA://building/entrance QR value (legacy WAYFINDER:// posters still work).
+  const legacy = text.replace(/^WAYFINDER:\/\//i, "INDOORA://");
   const byQr =
-    findEntranceIn(buildings, text) ??
-    findEntranceIn(buildings, `WAYFINDER://${text.toLowerCase()}`);
+    findEntranceIn(buildings, legacy) ??
+    findEntranceIn(buildings, `INDOORA://${text.toLowerCase()}`);
   if (byQr) return { b: byQr.building.id, e: byQr.entrance.nodeId };
 
   // Bare building/site id — caller shows its entrance list.
@@ -73,7 +74,7 @@ export default function Home() {
     (text: string) => {
       setScanning(false);
       if (!applyResolved(resolveEntranceCode(buildings, text))) {
-        setCodeError("That QR code isn't a Wayfinder entrance code.");
+        setCodeError("That QR code isn't an Indoora entrance code.");
       }
     },
     [applyResolved, buildings],
@@ -135,7 +136,7 @@ export default function Home() {
         <div className="w-12 h-12 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mb-6 shadow-md shadow-primary/20">
           <MapIcon className="w-6 h-6" />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-2">Wayfinder</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight mb-2">Indoora</h1>
         <p className="text-muted-foreground text-lg">Where are you starting from?</p>
       </div>
 

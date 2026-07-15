@@ -80,7 +80,7 @@ export default function AdminQRPosters() {
       <div className="p-8 print:p-0 print:m-0 space-y-24 print:space-y-0">
         {buildings.flatMap(bldg => {
           const stored = storedById.get(bldg.id);
-          const posterTitle = stored?.posterTitle?.trim() || "Wayfinder";
+          const posterTitle = stored?.posterTitle?.trim() || "Indoora";
           const posterLogo = stored?.posterLogoFile ? uploadUrl(stored.posterLogoFile) : null;
           const accent = stored?.posterAccentColor || "#0f172a";
           return bldg.entrances.map(ent => {
@@ -120,7 +120,7 @@ export default function AdminQRPosters() {
                   <p className="text-lg text-slate-500 pt-4">
                     Camera not working? Open the site and enter code{" "}
                     <span className="font-mono font-bold text-slate-800">
-                      {ent.qrValue.replace("WAYFINDER://", "")}
+                      {ent.qrValue.replace("INDOORA://", "")}
                     </span>
                   </p>
                 </div>

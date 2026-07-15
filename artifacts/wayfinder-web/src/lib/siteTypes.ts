@@ -37,7 +37,7 @@ export interface StoredSite {
   edges: StoredSiteEdge[];
   /** Only published sites are visible to visitors. */
   published: boolean;
-  /** Optional poster branding — title shown on printed QR posters (falls back to "Wayfinder"). */
+  /** Optional poster branding — title shown on printed QR posters (falls back to "Indoora"). */
   posterTitle?: string;
   /** Optional uploaded logo file name (in the server uploads dir) shown on posters. */
   posterLogoFile?: string | null;

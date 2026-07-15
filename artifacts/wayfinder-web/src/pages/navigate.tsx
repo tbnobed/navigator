@@ -280,7 +280,7 @@ function CalibrationScreen({ nav, onStart }: { nav: any; onStart: () => void }) 
           Ready to Walk?
         </h1>
         <p className="text-lg text-muted-foreground mb-12 max-w-sm">
-          Wayfinder needs access to your camera and motion sensors to guide you.
+          Indoora needs access to your camera and motion sensors to guide you.
         </p>
 
         <Button size="lg" className="w-full max-w-sm rounded-full h-16 text-lg shadow-lg shadow-primary/25" onClick={handlePermissions}>

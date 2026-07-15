@@ -55,7 +55,7 @@ export default function ScanScreen() {
             title="Camera access needed"
             message={
               permission.canAskAgain
-                ? 'Wayfinder scans the QR code at a building entrance to load its indoor map and start guiding you.'
+                ? 'Indoora scans the QR code at a building entrance to load its indoor map and start guiding you.'
                 : 'Camera access was denied. Enable it in Settings to scan entrance codes.'
             }
             actionLabel={permission.canAskAgain ? 'Enable Camera' : 'Try Again'}

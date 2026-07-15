@@ -592,14 +592,14 @@ export default function AdminEditor() {
             <h3 className="font-bold">Poster branding</h3>
             <p className="text-xs text-muted-foreground">
               Customize the printed QR posters for this site. Leave blank to use the default
-              "Wayfinder" branding.
+              "Indoora" branding.
             </p>
             <div className="space-y-2">
               <Label>Poster title</Label>
               <Input
                 value={draft.posterTitle ?? ""}
                 onChange={(e) => update({ posterTitle: e.target.value })}
-                placeholder="Wayfinder"
+                placeholder="Indoora"
                 className="rounded-xl"
                 data-testid="input-poster-title"
               />

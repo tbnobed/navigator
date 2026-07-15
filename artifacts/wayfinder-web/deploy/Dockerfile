@@ -1,4 +1,4 @@
-# Wayfinder Web — frontend + admin/sites API in one Node container.
+# Indoora — frontend + admin/sites API in one Node container.
 #
 # Build from the MONOREPO ROOT (the app depends on pnpm workspace packages):
 #   docker build -f artifacts/wayfinder-web/deploy/Dockerfile -t wayfinder-web .

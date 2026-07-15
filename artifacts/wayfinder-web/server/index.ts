@@ -1,5 +1,5 @@
 /**
- * Wayfinder admin + sites API.
+ * Indoora admin + sites API.
  *
  * Dev:  runs next to the vite dev server (see the `dev` script); vite proxies
  *       `<BASE_PATH>api/*` here.

@@ -62,7 +62,7 @@ export function storedToBuilding(site: StoredSite): Building | null {
     entrances: site.nodes
       .filter((n) => n.kind === 'entrance')
       .map((n) => ({
-        qrValue: `WAYFINDER://${site.id}/${n.id}`,
+        qrValue: `INDOORA://${site.id}/${n.id}`,
         nodeId: n.id,
         label: n.label || 'Entrance',
         facingBearing: n.facingBearing ?? 0,

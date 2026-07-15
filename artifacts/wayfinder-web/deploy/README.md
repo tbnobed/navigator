@@ -1,4 +1,4 @@
-# Deploying Wayfinder Web on your Ubuntu server (Docker)
+# Deploying Indoora on your Ubuntu server (Docker)
 
 The container runs a small Node server that serves the built app **and** the
 admin/sites API. Sites you create in the admin portal (JSON + uploaded floor
@@ -45,7 +45,7 @@ won't work. Put a TLS reverse proxy in front — the standard setup:
 
 ```bash
 sudo apt install nginx certbot python3-certbot-nginx
-sudo certbot --nginx -d wayfinder.example.com
+sudo certbot --nginx -d indoora.example.com
 ```
 
 Then proxy your domain to the container in the host nginx config:
@@ -62,13 +62,13 @@ location / {
 
 ## 4. Create your sites
 
-Open `https://wayfinder.example.com/admin`, sign in with your admin password,
+Open `https://indoora.example.com/admin`, sign in with your admin password,
 create a site, upload its floor plan, set the scale, then place entrances,
 destinations and walkable paths. Publish when the checklist is green.
 
 ## 5. Print the QR codes
 
-Open `https://wayfinder.example.com/qr` **on the deployed site** and print
+Open `https://indoora.example.com/qr` **on the deployed site** and print
 the posters from there — the QR codes encode the URL of the site they're
 generated on, so they'll point at your server. Published admin-created sites
 appear automatically alongside the built-in demo site.
