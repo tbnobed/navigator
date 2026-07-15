@@ -12,6 +12,30 @@ import { Map, Video, ArrowLeft, ArrowUp, Compass, Navigation, CheckCircle2, Rota
 import { cn } from "@/lib/utils";
 
 // Internal components
+
+/**
+ * Small compass rose. Rotates so the needle keeps pointing at floorplan
+ * "north" (map-up) while the user turns — shown on both AR and Map views.
+ */
+function CompassWidget({ facingBearing }: { facingBearing: number }) {
+  return (
+    <div className="w-14 h-14 rounded-full bg-black/50 backdrop-blur-md border border-white/10 shadow-lg relative flex items-center justify-center pointer-events-none">
+      <div
+        className="absolute inset-0 transition-transform duration-300 ease-out"
+        style={{ transform: `rotate(${-facingBearing}deg)` }}
+      >
+        {/* Needle: red = north (map-up), white = south */}
+        <svg viewBox="0 0 56 56" className="w-full h-full">
+          <polygon points="28,10 32,28 24,28" fill="#ef4444" />
+          <polygon points="28,46 32,28 24,28" fill="rgba(255,255,255,0.75)" />
+          <circle cx="28" cy="28" r="2.5" fill="white" />
+          <text x="28" y="9" textAnchor="middle" fill="#ef4444" fontSize="8" fontWeight="bold">N</text>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 function MapView({ 
   floor, 
   nav, 
@@ -223,6 +247,21 @@ function ActiveNavigation({
           </button>
         </div>
       </div>
+
+      {/* Compass (both views) */}
+      <div className="absolute top-20 right-4 z-10 safe-area-pt">
+        <CompassWidget facingBearing={nav.facingFloorplanBearing} />
+      </div>
+
+      {/* Wrong-way alert (both views) */}
+      {nav.wrongWay && (
+        <div className="absolute top-36 left-0 right-0 z-10 flex justify-center px-4 pointer-events-none">
+          <div className="bg-red-600/95 backdrop-blur-md text-white font-bold px-5 py-3 rounded-full shadow-2xl border border-red-400/40 flex items-center gap-2 animate-pulse">
+            <RotateCcw className="w-5 h-5" />
+            Wrong way — turn around
+          </div>
+        </div>
+      )}
 
       {/* Bottom HUD */}
       <div className="relative z-10 mt-auto p-4 safe-area-pb pointer-events-none">

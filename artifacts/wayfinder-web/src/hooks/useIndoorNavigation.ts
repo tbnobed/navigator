@@ -106,6 +106,20 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     ((((compassFacing ?? entranceFacingBearing) + manualAdjust) % 360) + 360) % 360;
   const arrowRotation = angleDiff(targetFloorplanBearing, facingFloorplanBearing);
 
+  // Wrong-way detection: facing >120° away from the route direction,
+  // sustained for a couple of seconds (so briefly glancing around while
+  // standing still doesn't trigger it).
+  const [wrongWay, setWrongWay] = useState(false);
+  const facingAway = Math.abs(arrowRotation) > 120 && !arrived && !awaitingTransition;
+  useEffect(() => {
+    if (!facingAway) {
+      setWrongWay(false);
+      return;
+    }
+    const id = setTimeout(() => setWrongWay(true), 2000);
+    return () => clearTimeout(id);
+  }, [facingAway]);
+
   /** Rotate the user's perceived facing direction (degrees, positive = clockwise). */
   const adjustHeading = useCallback((deltaDeg: number) => {
     setManualAdjust((prev) => prev + deltaDeg);
@@ -185,6 +199,8 @@ export function useIndoorNavigation(route: Route, entranceFacingBearing: number)
     motionPermission: motion.permission,
     orientationPermission: compass.permission,
     arrowRotation,
+    /** True when the user has been facing >120° away from the route for a sustained moment. */
+    wrongWay,
     targetFloorplanBearing,
     facingFloorplanBearing,
     adjustHeading,
