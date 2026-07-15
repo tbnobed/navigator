@@ -1,0 +1,12 @@
+{
+  "name": "Indoora",
+  "short_name": "Indoora",
+  "description": "Indoor navigation — scan a QR poster at the entrance and get guided to any room.",
+  "icons": [
+    { "src": "android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0f172a",
+  "background_color": "#fdfcfa",
+  "display": "standalone"
+}

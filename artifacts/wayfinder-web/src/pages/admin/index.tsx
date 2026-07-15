@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Lock, Plus, Map as MapIcon, Trash2, ChevronRight, LogOut, QrCode } from "lucide-react";
+import { Plus, Map as MapIcon, Trash2, ChevronRight, LogOut, QrCode } from "lucide-react";
 
 function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
   const [password, setPassword] = useState("");
@@ -53,9 +53,11 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-6 safe-area-pt safe-area-pb">
       <div className="w-full max-w-sm">
-        <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mb-6 mx-auto border border-primary/20">
-          <Lock className="w-8 h-8 text-primary" />
-        </div>
+        <img
+          src={`${import.meta.env.BASE_URL}brand/glyph-app-icon.svg`}
+          alt="Indoora"
+          className="w-16 h-16 rounded-3xl mb-6 mx-auto shadow-md shadow-primary/20"
+        />
         <h1 className="text-3xl font-extrabold tracking-tight text-center mb-2">Indoora Admin</h1>
         <p className="text-muted-foreground text-center mb-8">Enter the admin password to manage sites.</p>
         <Input

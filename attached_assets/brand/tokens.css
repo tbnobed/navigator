@@ -1,0 +1,19 @@
+:root {
+  --indoora-blue:        #2563eb;
+  --indoora-blue-hover:  #1d4ed8;
+  --indoora-slate:       #0f172a;
+  --indoora-beam:        #38bdf8;
+  --indoora-bg:          #fdfcfa;
+  --indoora-muted:       #64748b;
+  --indoora-arrived:     #22c55e;
+
+  --indoora-blue-50:     #eff6ff;
+  --indoora-blue-100:    #bfdbfe;
+  --indoora-slate-100:   #e2e8f0;
+  --indoora-slate-300:   #94a3b8;
+
+  --indoora-radius-pill: 999px;
+  --indoora-radius-card: 16px;
+  --indoora-font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* headings: font-weight 800, letter-spacing -0.04em */
+}

@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="InDoora">
+  <title>InDoora glyph mono</title>
+  <rect width="512" height="512" rx="115" fill="none" stroke="#0f172a" stroke-width="10"/>
+  <circle cx="178" cy="334" r="75" fill="#0f172a"/>
+  <circle cx="178" cy="334" r="27" fill="#ffffff"/>
+  <path d="M178 334 Q 256 164 334 192" fill="none" stroke="#0f172a" stroke-width="14" stroke-linecap="round" stroke-dasharray="2 30"/>
+  <circle cx="348" cy="190" r="75" fill="none" stroke="#0f172a" stroke-width="16"/>
+  <circle cx="348" cy="190" r="27" fill="#0f172a"/>
+</svg>

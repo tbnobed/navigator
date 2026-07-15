@@ -91,14 +91,12 @@ export default function AdminQRPosters() {
                 className="max-w-2xl mx-auto bg-white text-black p-16 rounded-3xl shadow-xl print:shadow-none print:rounded-none print:max-w-none print:w-full print:h-auto print:p-6 flex flex-col items-center justify-center print:justify-start break-after-page break-inside-avoid"
               >
                 <div className="text-center mb-16 print:mb-8">
-                  {posterLogo && (
-                    <img
-                      src={posterLogo}
-                      alt={`${posterTitle} logo`}
-                      className="h-24 print:h-20 mx-auto mb-6 print:mb-4 object-contain"
-                      data-testid={`img-poster-logo-${bldg.id}`}
-                    />
-                  )}
+                  <img
+                    src={posterLogo ?? `${import.meta.env.BASE_URL}brand/glyph-app-icon.svg`}
+                    alt={`${posterTitle} logo`}
+                    className="h-24 print:h-20 mx-auto mb-6 print:mb-4 object-contain"
+                    data-testid={`img-poster-logo-${bldg.id}`}
+                  />
                   <h1 className="text-6xl print:text-5xl font-extrabold tracking-tighter mb-4 print:mb-2" style={{ color: accent }}>{posterTitle}</h1>
                   <h2 className="text-3xl print:text-2xl font-medium text-slate-600 mb-2">{bldg.name}</h2>
                   <h3 className="text-4xl print:text-3xl font-bold text-slate-800">{ent.label}</h3>

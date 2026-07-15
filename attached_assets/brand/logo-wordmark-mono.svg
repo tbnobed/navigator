@@ -1,0 +1,11 @@
+<svg width="300" height="72" viewBox="0 0 300 72" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="InDoora">
+  <title>InDoora mono</title>
+  <g fill="#0f172a">
+    <circle cx="19" cy="36" r="19"/>
+    <circle cx="19" cy="36" r="7" fill="#ffffff"/>
+    <circle cx="92" cy="36" r="19"/>
+    <circle cx="92" cy="36" r="7" fill="#ffffff"/>
+  </g>
+  <path d="M19 36 Q 55 14 92 36" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 8"/>
+  <text x="118" y="49" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="52" font-weight="800" letter-spacing="-2.5" fill="#0f172a">InDoora</text>
+</svg>

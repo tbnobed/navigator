@@ -5,7 +5,7 @@ import { useBuildings, getBuildingIn, findEntranceIn } from "@/lib/sites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QrScanner } from "@/components/QrScanner";
-import { MapPin, ArrowRight, Map as MapIcon, ChevronRight, ScanLine } from "lucide-react";
+import { MapPin, ArrowRight, ChevronRight, ScanLine } from "lucide-react";
 
 /**
  * Resolve any QR payload or typed site code to { b, e } params.
@@ -133,10 +133,16 @@ export default function Home() {
       {scanning && <QrScanner onResult={handleScan} onClose={() => setScanning(false)} />}
 
       <div className="p-6 pb-2">
-        <div className="w-12 h-12 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center mb-6 shadow-md shadow-primary/20">
-          <MapIcon className="w-6 h-6" />
-        </div>
-        <h1 className="text-3xl font-extrabold tracking-tight mb-2">Indoora</h1>
+        <img
+          src={`${import.meta.env.BASE_URL}brand/glyph-app-icon.svg`}
+          alt="Indoora"
+          className="w-12 h-12 rounded-2xl mb-6 shadow-md shadow-primary/20"
+        />
+        <img
+          src={`${import.meta.env.BASE_URL}brand/logo-wordmark.svg`}
+          alt="Indoora"
+          className="h-9 mb-2"
+        />
         <p className="text-muted-foreground text-lg">Where are you starting from?</p>
       </div>
 
