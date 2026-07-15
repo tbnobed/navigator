@@ -1,0 +1,75 @@
+obtv-admin@maps:~/navigator$ docker compose -f artifacts/wayfinder-web/deploy/docker-compose.yml up -d --build
+[+] Building 45.6s (12/14)
+ => [internal] load local bake definitions                                                                                                       0.0s
+ => => reading from stdin 545B                                                                                                                   0.0s
+ => [internal] load build definition from Dockerfile                                                                                             0.3s
+ => => transferring dockerfile: 1.27kB                                                                                                           0.0s
+ => [internal] load metadata for docker.io/library/node:22-alpine                                                                                1.5s
+ => [internal] load .dockerignore                                                                                                                0.2s
+ => => transferring context: 2B                                                                                                                  0.0s
+ => [1/9] FROM docker.io/library/node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2                         11.1s
+ => => resolve docker.io/library/node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2                          0.2s
+ => => sha256:d10ff586f6bdbdd6000a70a914e56bf05bedc78de3311d08a953643982d84e23 446B / 446B                                                       0.3s
+ => => sha256:1d4d101ceaad39fb56dcac0bb6cc291e6cdec3b711786f0c82b050b5b5b85690 1.26MB / 1.26MB                                                   0.3s
+ => => sha256:3f4c164634d251a8b256151a9e1c1d3e5c5b21f1974f00a213875e66e3fa0801 52.31MB / 52.31MB                                                 2.8s
+ => => sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4 3.85MB / 3.85MB                                                   0.4s
+ => => extracting sha256:55afa1ecc21d2bb5e5045f32dafee56272ffd89860bac26f6c32123439af26a4                                                        0.6s
+ => => extracting sha256:3f4c164634d251a8b256151a9e1c1d3e5c5b21f1974f00a213875e66e3fa0801                                                        5.9s
+ => => extracting sha256:1d4d101ceaad39fb56dcac0bb6cc291e6cdec3b711786f0c82b050b5b5b85690                                                        0.3s
+ => => extracting sha256:d10ff586f6bdbdd6000a70a914e56bf05bedc78de3311d08a953643982d84e23                                                        0.2s
+ => [internal] load build context                                                                                                                0.9s
+ => => transferring context: 1.67MB                                                                                                              0.1s
+ => [2/9] RUN corepack enable && corepack prepare pnpm@latest --activate                                                                         4.9s
+ => [3/9] WORKDIR /app                                                                                                                           0.5s
+ => [4/9] COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* tsconfig.base.json ./                                                            0.7s
+ => [5/9] COPY lib ./lib                                                                                                                         0.5s
+ => [6/9] COPY artifacts/wayfinder-web ./artifacts/wayfinder-web                                                                                 0.5s
+ => ERROR [7/9] RUN pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... ||     pnpm install --filter @workspace/wayfinder-web.  24.0s
+------
+ > [7/9] RUN pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... ||     pnpm install --filter @workspace/wayfinder-web...:
+2.482 Scope: 2 of 6 workspace projects
+3.235 ? Verifying lockfile against supply-chain policies (1117 entries)...
+3.277 Lockfile is up to date, resolution step is skipped
+3.563 Progress: resolved 1, reused 0, downloaded 0, added 0
+3.853 .                                        | +349 ++++++++++++++++++++++++++++++++
+4.569 Progress: resolved 349, reused 0, downloaded 0, added 0
+5.598 Progress: resolved 349, reused 0, downloaded 72, added 4
+6.610 Progress: resolved 349, reused 0, downloaded 161, added 9
+7.621 Progress: resolved 349, reused 0, downloaded 256, added 17
+8.630 Progress: resolved 349, reused 0, downloaded 302, added 21
+9.636 Progress: resolved 349, reused 0, downloaded 347, added 62
+10.65 Progress: resolved 349, reused 0, downloaded 349, added 218
+11.66 Progress: resolved 349, reused 0, downloaded 349, added 342
+12.08 Progress: resolved 349, reused 0, downloaded 349, added 349, done
+17.71 ✓ Lockfile passes supply-chain policies (1117 entries in 14.4s)
+17.99 . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+18.05 . preinstall: Done
+18.49 [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3
+18.49
+18.49 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+20.53 Scope: 2 of 6 workspace projects
+20.75 ✓ Lockfile passes supply-chain policies (verified 3s ago)
+20.77 Lockfile is up to date, resolution step is skipped
+22.36 . preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+22.38 . preinstall: Done
+22.53 [ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.27.3
+22.53
+22.53 Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.
+------
+[+] up 0/1
+ ⠙ Image deploy-wayfinder Building                                                                                                               45.8s
+Dockerfile:21
+
+--------------------
+
+  20 |
+
+  21 | >>> RUN pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... || \
+
+  22 | >>>     pnpm install --filter @workspace/wayfinder-web...
+
+  23 |
+
+--------------------
+
+failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... ||     pnpm install --filter @workspace/wayfinder-web..." did not complete successfully: exit code: 1

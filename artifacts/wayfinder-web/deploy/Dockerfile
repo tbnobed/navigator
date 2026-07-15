@@ -9,7 +9,9 @@
 
 FROM node:22-alpine
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Pin pnpm to the same major version the project is developed with —
+# newer majors turn the "ignored build scripts" warning into a hard error.
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 WORKDIR /app
 
@@ -19,7 +21,7 @@ COPY lib ./lib
 COPY artifacts/wayfinder-web ./artifacts/wayfinder-web
 
 RUN pnpm install --frozen-lockfile --filter @workspace/wayfinder-web... || \
-    pnpm install --filter @workspace/wayfinder-web...
+    pnpm install --config.dangerouslyAllowAllBuilds=true --filter @workspace/wayfinder-web...
 
 # BASE_PATH=/ because on your own server the app lives at the domain root.
 ENV BASE_PATH=/
