@@ -270,7 +270,10 @@ export default function AdminEditor() {
       return;
     }
     if (e.button !== 0 || dragRef.current) return;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    // Do NOT setPointerCapture on the SVG here: capturing retargets the
+    // subsequent `click` event to the SVG itself, so clicks on nodes/edges
+    // (delete, connect, select) never fire. The window-level pointerup
+    // listener below already cleans up drags that end outside the SVG.
     dragRef.current = {
       kind: "pan",
       clientX: e.clientX,
