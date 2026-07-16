@@ -335,53 +335,40 @@ function ActiveNavigation({
 
       {/* Bottom HUD */}
       <div className="relative z-10 mt-auto p-4 safe-area-pb pointer-events-none">
-        <div className="glass-panel bg-black/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] shadow-2xl pointer-events-auto mb-2 text-white">
+        <div className="glass-panel bg-black/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 p-3 rounded-[1.5rem] shadow-2xl pointer-events-auto mb-2 text-white">
           {/* Mini map lives inside the same panel as the instructions. */}
           {viewMode === 'ar' && floor && (
-            <div className="rounded-2xl overflow-hidden bg-white/95 mb-4 flex justify-center">
+            <div className="rounded-xl overflow-hidden bg-white/95 mb-2 flex justify-center">
               <MiniMap
                 floor={floor}
                 nav={nav}
                 destination={destination}
-                width={Math.min(size.w - 80, 440)}
+                width={Math.min(size.w - 56, 460)}
                 height={120}
               />
             </div>
           )}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/20 text-primary rounded-full flex items-center justify-center">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 bg-primary/20 text-primary rounded-full flex items-center justify-center">
                 {/* Live direction-to-next-waypoint arrow, relative to which way
                     the user is facing. Navigation glyph points NE at 0°, so
                     offset by -45° to make it point straight up as the base. */}
                 <Navigation
-                  className="w-6 h-6 transition-transform duration-300"
+                  className="w-5 h-5 transition-transform duration-300"
                   style={{ transform: `rotate(${nav.arrowRotation - 45}deg)` }}
                 />
               </div>
-              <div>
-                <p className="text-sm font-bold text-white/60 tracking-wider uppercase mb-1">Up Next</p>
-                <h2 className="text-2xl font-bold leading-none tracking-tight">
-                  {nav.currentInstruction?.instruction || 'Continue straight'}
-                </h2>
-              </div>
+              <h2 className="text-lg font-bold leading-tight tracking-tight truncate">
+                {nav.currentInstruction?.instruction || 'Continue straight'}
+              </h2>
             </div>
-            <div className="text-right">
-              <span className="text-4xl font-extrabold tracking-tighter">
+            <div className="text-right shrink-0">
+              <span className="text-2xl font-extrabold tracking-tighter">
                 {Math.max(nav.currentInstruction?.distance || 0, 0).toFixed(0)}
               </span>
               <span className="text-sm font-medium text-white/60 ml-1">m</span>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-4 mt-6">
-            <Button 
-              variant="secondary" 
-              className="flex-1 rounded-full h-12 bg-white/10 hover:bg-white/20 text-white border-transparent"
-              onClick={nav.skipToNextWaypoint}
-            >
-              I'm at the corner
-            </Button>
           </div>
         </div>
 
@@ -595,7 +582,7 @@ function CalibrationScreen({
             ? "Compass and motion sensors aren't responding — walking won't be tracked automatically. Try reloading and allowing sensor access."
             : !nav.headingAvailable
               ? "Compass isn't responding — the direction won't follow you as you turn."
-              : "Motion sensor isn't responding — your position won't advance as you walk. Use \"I'm at the corner\" to move along the route."}
+              : "Motion sensor isn't responding — your position won't advance as you walk."}
         </p>
       )}
 
