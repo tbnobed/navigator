@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute } from "wouter";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -28,13 +28,16 @@ import {
   Save,
   CheckCircle2,
   AlertTriangle,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tool = "select" | "entrance" | "junction" | "poi" | "connect" | "delete" | "scale";
 
 const TOOLS: { id: Tool; icon: typeof MousePointer2; label: string; hint: string }[] = [
-  { id: "select", icon: MousePointer2, label: "Select", hint: "Click a point to edit its details." },
+  { id: "select", icon: MousePointer2, label: "Select", hint: "Click a point to edit it, or drag it to move it. Scroll or pinch to zoom; drag the map to pan." },
   { id: "entrance", icon: DoorOpen, label: "Entrance", hint: "Click the map where an entrance QR poster will hang." },
   { id: "junction", icon: CircleDot, label: "Waypoint", hint: "Click along corridors to add path waypoints." },
   { id: "poi", icon: MapPin, label: "Destination", hint: "Click the map to add a destination visitors can pick." },
@@ -75,6 +78,18 @@ export default function AdminEditor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+
+  // Zoom / pan / drag state. `view` is the visible window in image pixels.
+  const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
+  const dragRef = useRef<
+    | { kind: "node"; id: string }
+    | { kind: "pan"; clientX: number; clientY: number; viewX: number; viewY: number }
+    | null
+  >(null);
+  const movedRef = useRef(false);
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchDistRef = useRef<number | null>(null);
+  const zoomAtRef = useRef<((clientX: number, clientY: number, factor: number) => void) | null>(null);
 
   const query = useQuery({
     queryKey: ["admin-site", siteId],
@@ -167,17 +182,170 @@ export default function AdminEditor() {
     }
   };
 
-  const svgPoint = (e: React.MouseEvent): { px: number; py: number } | null => {
+  const clampView = (x: number, y: number, scale: number) => {
+    const iw = draft?.imageWidth || 1;
+    const ih = draft?.imageHeight || 1;
+    const wv = iw / scale;
+    const hv = ih / scale;
+    return {
+      x: Math.min(Math.max(0, x), iw - wv),
+      y: Math.min(Math.max(0, y), ih - hv),
+      scale,
+    };
+  };
+
+  const zoomAt = (clientX: number, clientY: number, factor: number) => {
+    const svg = svgRef.current;
+    if (!svg || !draft) return;
+    const rect = svg.getBoundingClientRect();
+    setView((v) => {
+      const newScale = Math.min(8, Math.max(1, v.scale * factor));
+      if (newScale === v.scale) return v;
+      const iw = draft.imageWidth;
+      const ih = draft.imageHeight;
+      const fx = (clientX - rect.left) / rect.width;
+      const fy = (clientY - rect.top) / rect.height;
+      // Keep the point under the cursor fixed while zooming.
+      const px = v.x + fx * (iw / v.scale);
+      const py = v.y + fy * (ih / v.scale);
+      const nx = px - fx * (iw / newScale);
+      const ny = py - fy * (ih / newScale);
+      const wv = iw / newScale;
+      const hv = ih / newScale;
+      return {
+        x: Math.min(Math.max(0, nx), iw - wv),
+        y: Math.min(Math.max(0, ny), ih - hv),
+        scale: newScale,
+      };
+    });
+  };
+  zoomAtRef.current = zoomAt;
+
+  // Wheel zoom needs a non-passive listener (React's onWheel can't preventDefault).
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      zoomAtRef.current?.(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015));
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+  }, [draft?.imageFile]);
+
+  const zoomButtons = (factor: number) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
+  };
+
+  const svgPoint = (e: { clientX: number; clientY: number }): { px: number; py: number } | null => {
     const svg = svgRef.current;
     if (!svg || !draft) return null;
     const rect = svg.getBoundingClientRect();
     return {
-      px: Math.round(((e.clientX - rect.left) / rect.width) * draft.imageWidth),
-      py: Math.round(((e.clientY - rect.top) / rect.height) * draft.imageHeight),
+      px: Math.round(view.x + ((e.clientX - rect.left) / rect.width) * (draft.imageWidth / view.scale)),
+      py: Math.round(view.y + ((e.clientY - rect.top) / rect.height) * (draft.imageHeight / view.scale)),
     };
   };
 
+  const handleNodePointerDown = (e: React.PointerEvent, node: StoredSiteNode) => {
+    if (tool !== "select" || !draft) return;
+    e.stopPropagation();
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    dragRef.current = { kind: "node", id: node.id };
+    movedRef.current = false;
+    setSelectedId(node.id);
+  };
+
+  const handleSvgPointerDown = (e: React.PointerEvent) => {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2) {
+      // Second finger down: switch from pan/drag to pinch zoom.
+      const [a, b] = [...pointersRef.current.values()];
+      pinchDistRef.current = Math.hypot(b.x - a.x, b.y - a.y);
+      dragRef.current = null;
+      movedRef.current = true; // suppress the trailing click
+      return;
+    }
+    if (e.button !== 0 || dragRef.current) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    dragRef.current = {
+      kind: "pan",
+      clientX: e.clientX,
+      clientY: e.clientY,
+      viewX: view.x,
+      viewY: view.y,
+    };
+    movedRef.current = false;
+  };
+
+  const handleSvgPointerMove = (e: React.PointerEvent) => {
+    if (pointersRef.current.has(e.pointerId)) {
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pointersRef.current.size === 2 && pinchDistRef.current !== null) {
+      const [a, b] = [...pointersRef.current.values()];
+      const dist = Math.hypot(b.x - a.x, b.y - a.y);
+      if (dist > 0 && pinchDistRef.current > 0) {
+        zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, dist / pinchDistRef.current);
+      }
+      pinchDistRef.current = dist;
+      return;
+    }
+    const drag = dragRef.current;
+    const svg = svgRef.current;
+    if (!drag || !svg || !draft) return;
+    if (drag.kind === "node") {
+      const pt = svgPoint(e);
+      if (!pt) return;
+      movedRef.current = true;
+      updateNode(drag.id, {
+        px: Math.min(Math.max(0, pt.px), draft.imageWidth),
+        py: Math.min(Math.max(0, pt.py), draft.imageHeight),
+      });
+    } else {
+      const moved =
+        Math.abs(e.clientX - drag.clientX) + Math.abs(e.clientY - drag.clientY) > 3;
+      if (moved) movedRef.current = true;
+      if (view.scale > 1 && moved) {
+        const rect = svg.getBoundingClientRect();
+        const dx = ((e.clientX - drag.clientX) / rect.width) * (draft.imageWidth / view.scale);
+        const dy = ((e.clientY - drag.clientY) / rect.height) * (draft.imageHeight / view.scale);
+        setView(clampView(drag.viewX - dx, drag.viewY - dy, view.scale));
+      }
+    }
+  };
+
+  const handleSvgPointerEnd = (e: React.PointerEvent) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) pinchDistRef.current = null;
+    dragRef.current = null;
+  };
+
+  // Safety net: if a pointer is released outside the SVG (capture lost, tab
+  // switch, etc.), never leave a drag armed — that would freeze the canvas.
+  useEffect(() => {
+    const clear = (e: PointerEvent) => {
+      pointersRef.current.delete(e.pointerId);
+      if (pointersRef.current.size < 2) pinchDistRef.current = null;
+      dragRef.current = null;
+    };
+    window.addEventListener("pointerup", clear);
+    window.addEventListener("pointercancel", clear);
+    return () => {
+      window.removeEventListener("pointerup", clear);
+      window.removeEventListener("pointercancel", clear);
+    };
+  }, []);
+
   const handleMapClick = (e: React.MouseEvent) => {
+    if (movedRef.current) {
+      // This click is the tail end of a drag/pan — don't place or deselect.
+      movedRef.current = false;
+      return;
+    }
     if (!draft) return;
     const pt = svgPoint(e);
     if (!pt) return;
@@ -206,6 +374,10 @@ export default function AdminEditor() {
 
   const handleNodeClick = (e: React.MouseEvent, node: StoredSiteNode) => {
     e.stopPropagation();
+    if (movedRef.current) {
+      movedRef.current = false;
+      return;
+    }
     if (!draft) return;
     if (tool === "delete") {
       removeNode(node.id);
@@ -378,12 +550,32 @@ export default function AdminEditor() {
               )}
 
               {/* Canvas */}
-              <div className="border rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900">
+              <div className="relative border rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900">
+                <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
+                  <Button variant="secondary" size="icon" className="rounded-xl shadow-md" onClick={() => zoomButtons(1.4)} data-testid="button-zoom-in">
+                    <ZoomIn className="w-4 h-4" />
+                  </Button>
+                  <Button variant="secondary" size="icon" className="rounded-xl shadow-md" onClick={() => zoomButtons(1 / 1.4)} data-testid="button-zoom-out">
+                    <ZoomOut className="w-4 h-4" />
+                  </Button>
+                  {view.scale > 1 && (
+                    <Button variant="secondary" size="icon" className="rounded-xl shadow-md" onClick={() => setView({ x: 0, y: 0, scale: 1 })} data-testid="button-zoom-reset">
+                      <Maximize2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
                 <svg
                   ref={svgRef}
-                  viewBox={`0 0 ${vw} ${vh}`}
-                  className="w-full h-auto block cursor-crosshair select-none touch-manipulation"
+                  viewBox={`${view.x} ${view.y} ${vw / view.scale} ${vh / view.scale}`}
+                  className={cn(
+                    "w-full h-auto block select-none touch-none",
+                    tool === "select" ? (view.scale > 1 ? "cursor-grab" : "cursor-default") : "cursor-crosshair",
+                  )}
                   onClick={handleMapClick}
+                  onPointerDown={handleSvgPointerDown}
+                  onPointerMove={handleSvgPointerMove}
+                  onPointerUp={handleSvgPointerEnd}
+                  onPointerCancel={handleSvgPointerEnd}
                   data-testid="svg-map-editor"
                 >
                   <image href={uploadUrl(draft.imageFile)} width={vw} height={vh} />
@@ -408,6 +600,10 @@ export default function AdminEditor() {
                         onClick={(e) => {
                           if (tool !== "delete") return;
                           e.stopPropagation();
+                          if (movedRef.current) {
+                            movedRef.current = false;
+                            return;
+                          }
                           update({ edges: draft.edges.filter((_, j) => j !== i) });
                         }}
                       />
@@ -438,8 +634,9 @@ export default function AdminEditor() {
                   {draft.nodes.map((node) => (
                     <g
                       key={node.id}
-                      className="cursor-pointer"
+                      className={tool === "select" ? "cursor-move" : "cursor-pointer"}
                       onClick={(e) => handleNodeClick(e, node)}
+                      onPointerDown={(e) => handleNodePointerDown(e, node)}
                       data-testid={`node-${node.id}`}
                     >
                       <circle
