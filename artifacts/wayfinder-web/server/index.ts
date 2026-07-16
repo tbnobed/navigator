@@ -350,8 +350,22 @@ app.use('/api/uploads', express.static(UPLOADS_DIR, { fallthrough: false, maxAge
 
 if (SERVE_STATIC) {
   const distDir = path.join(PKG_ROOT, 'dist/public');
-  app.use(express.static(distDir));
+  // Hashed assets (js/css) are immutable — cache hard. index.html must NEVER
+  // be cached, or phones keep loading the previous build after a deploy.
+  app.use(
+    express.static(distDir, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    }),
+  );
   app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(distDir, 'index.html'));
   });
 }
