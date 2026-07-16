@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import Svg, { Circle, Line, Polyline } from 'react-native-svg';
+import Svg, { Polygon, Polyline } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 
 interface Props {
@@ -26,13 +26,13 @@ const CAMERA_HEIGHT = 1.4;
 const MAX_AHEAD = 18;
 /** Densify the polyline so the perspective curve looks smooth. */
 const SEGMENT_STEP = 0.6;
-/** Path width on the floor (m) — rendered with perspective (wide near, thin far). */
-const PATH_WIDTH_M = 0.32;
+/** Half-width of the painted floor band (m) — total band ≈ 1.2m wide. */
+const PATH_HALF_W = 0.6;
 /** Distance between the animated floor chevrons (m). */
-const CHEVRON_SPACING = 2.2;
+const CHEVRON_SPACING = 2.4;
 /** Chevron size on the floor (m): length of each wing / half-width. */
-const CHEVRON_LEN = 0.42;
-const CHEVRON_HALF_W = 0.3;
+const CHEVRON_LEN = 0.55;
+const CHEVRON_HALF_W = 0.42;
 /** Chevron drift speed along the path (m/s). */
 const CHEVRON_SPEED = 1.1;
 /** Animation tick (ms). Kept coarse to limit re-renders. */
@@ -124,22 +124,36 @@ export function ARPathOverlay({
     };
   };
 
-  const projected = useMemo(() => {
-    if (!ground) return [];
-    // Keep only the first contiguous in-front run so the trace stays continuous.
-    const result: { x: number; y: number; forward: number }[] = [];
-    let started = false;
-    for (const p of ground.dense) {
-      const pt = project(p.forward, p.right);
-      if (!pt) {
-        if (started) break;
+  // ---- Painted band: offset the centerline sideways in the GROUND plane,
+  // then project both edges. Constant real-world width (like tape on the
+  // floor) — perspective alone makes it converge far away.
+  const band = useMemo(() => {
+    if (!ground) return null;
+    const { dense } = ground;
+    const left: { x: number; y: number }[] = [];
+    const right: { x: number; y: number }[] = [];
+    for (let i = 0; i < dense.length; i++) {
+      const p = dense[i];
+      const q = dense[Math.min(i + 1, dense.length - 1)];
+      const r = dense[Math.max(i - 1, 0)];
+      let df = q.forward - r.forward;
+      let dr = q.right - r.right;
+      const len = Math.hypot(df, dr);
+      if (len < 1e-6) continue;
+      df /= len;
+      dr /= len;
+      const lp = project(p.forward - dr * PATH_HALF_W, p.right + df * PATH_HALF_W);
+      const rp = project(p.forward + dr * PATH_HALF_W, p.right - df * PATH_HALF_W);
+      if (!lp || !rp) {
+        if (left.length) break;
         continue;
       }
-      started = true;
-      if (pt.y > height + 120 || pt.y < -60 || pt.x < -width || pt.x > width * 2) continue;
-      result.push(pt);
+      if (lp.y > height + 200 && rp.y > height + 200) continue;
+      left.push({ x: lp.x, y: lp.y });
+      right.push({ x: rp.x, y: rp.y });
     }
-    return result;
+    if (left.length < 2) return null;
+    return [...left, ...right.reverse()].map((p) => `${p.x},${p.y}`).join(' ');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ground, devicePitch, width, height]);
 
@@ -187,47 +201,12 @@ export function ARPathOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ground, phase, devicePitch, width, height]);
 
-  if (projected.length < 2) return null;
-
-  // Per-segment strokes with perspective width: wide near the feet, thin far
-  // away. A constant-width polyline reads as a flat map, not floor paint.
-  const widthAt = (forward: number) =>
-    Math.min(Math.max((PATH_WIDTH_M / Math.max(forward, 0.6)) * focal, 3), 26);
-
-  const segments = projected.slice(0, -1).map((a, i) => {
-    const b = projected[i + 1];
-    return { a, b, w: (widthAt(a.forward) + widthAt(b.forward)) / 2 };
-  });
-  const nearest = projected[0];
+  if (!band) return null;
 
   return (
     <Svg width={width} height={height} style={{ position: 'absolute' }} pointerEvents="none">
-      {segments.map((s, i) => (
-        <Line
-          key={`glow-${i}`}
-          x1={s.a.x}
-          y1={s.a.y}
-          x2={s.b.x}
-          y2={s.b.y}
-          stroke={colors.primary}
-          strokeWidth={s.w * 1.8}
-          strokeLinecap="round"
-          opacity={0.3}
-        />
-      ))}
-      {segments.map((s, i) => (
-        <Line
-          key={`core-${i}`}
-          x1={s.a.x}
-          y1={s.a.y}
-          x2={s.b.x}
-          y2={s.b.y}
-          stroke={colors.primary}
-          strokeWidth={s.w}
-          strokeLinecap="round"
-          opacity={0.85}
-        />
-      ))}
+      {/* Flat semi-transparent painted band — like blue tape on the floor. */}
+      <Polygon points={band} fill={colors.primary} opacity={0.45} />
       {chevrons.map((c, i) => (
         <Polyline
           key={`chev-${i}`}
@@ -237,16 +216,9 @@ export function ARPathOverlay({
           strokeWidth={c.w}
           strokeLinecap="round"
           strokeLinejoin="round"
-          opacity={c.opacity}
+          opacity={c.opacity * 0.75}
         />
       ))}
-      <Circle
-        cx={nearest.x}
-        cy={nearest.y}
-        r={Math.min(widthAt(nearest.forward) * 0.7, 12)}
-        fill={colors.primary}
-        opacity={0.9}
-      />
     </Svg>
   );
 }
