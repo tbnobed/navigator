@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Svg, { Polygon, Polyline } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 
@@ -60,9 +60,28 @@ export function ARPathOverlay({
 
   // Animation phase 0..1 — chevrons drift forward one spacing per cycle.
   const [phase, setPhase] = useState(0);
+  // Smoothed sensor values — raw compass/tilt readings jitter constantly,
+  // which made the band swing around with the slightest phone movement.
+  // Ease toward the live values instead of following them directly.
+  const [smooth, setSmooth] = useState({ bearing: facingBearing, pitch: devicePitch ?? 75 });
+  const targetRef = useRef({ bearing: facingBearing, pitch: devicePitch ?? 75 });
+  targetRef.current = { bearing: facingBearing, pitch: devicePitch ?? 75 };
   useEffect(() => {
     const step = (CHEVRON_SPEED * (TICK_MS / 1000)) / CHEVRON_SPACING;
-    const id = setInterval(() => setPhase((p) => (p + step) % 1), TICK_MS);
+    const id = setInterval(() => {
+      setPhase((p) => (p + step) % 1);
+      setSmooth((s) => {
+        const t = targetRef.current;
+        // Shortest-arc easing for the compass bearing (wraps at 360).
+        let diff = ((t.bearing - s.bearing + 540) % 360) - 180;
+        // Deadband: ignore tiny jitter entirely; ease through real turns.
+        if (Math.abs(diff) < 1.5) diff = 0;
+        const bearing = (s.bearing + diff * 0.18 + 360) % 360;
+        const pitch = s.pitch + (t.pitch - s.pitch) * 0.25;
+        if (diff === 0 && Math.abs(t.pitch - s.pitch) < 0.2) return s;
+        return { bearing, pitch };
+      });
+    }, TICK_MS);
     return () => clearInterval(id);
   }, []);
 
@@ -70,7 +89,7 @@ export function ARPathOverlay({
   const ground = useMemo(() => {
     if (points.length < 2) return null;
 
-    const rad = (facingBearing * Math.PI) / 180;
+    const rad = (smooth.bearing * Math.PI) / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
     const relative = points.map((p) => {
@@ -82,9 +101,11 @@ export function ARPathOverlay({
 
     // Densify segments (with cumulative travelled distance) so the projected
     // curve bends smoothly and chevrons can be placed by distance.
+    // Only the CURRENT step is drawn — the band stops at the next turn.
+    const maxSegments = Math.min(relative.length - 1, 1);
     const dense: { forward: number; right: number; dist: number }[] = [];
     let travelled = 0;
-    outer: for (let i = 0; i < relative.length - 1; i++) {
+    outer: for (let i = 0; i < maxSegments; i++) {
       const a = relative[i];
       const b = relative[i + 1];
       const segLen = Math.hypot(b.forward - a.forward, b.right - a.right);
@@ -102,11 +123,11 @@ export function ARPathOverlay({
     }
     if (dense.length < 2) return null;
     return { dense, total: dense[dense.length - 1].dist };
-  }, [points, userX, userY, facingBearing]);
+  }, [points, userX, userY, smooth.bearing]);
 
   // ---- Perspective projection of a ground point ----
   const focal = height * 0.9;
-  const betaDeg = devicePitch ?? 75; // default: slight natural downward tilt
+  const betaDeg = smooth.pitch; // smoothed tilt (see above)
   const pitchDown = Math.min(Math.max(((90 - betaDeg) * Math.PI) / 180, -0.5), 0.9);
   const cosP = Math.cos(pitchDown);
   const sinP = Math.sin(pitchDown);
@@ -155,7 +176,7 @@ export function ARPathOverlay({
     if (left.length < 2) return null;
     return [...left, ...right.reverse()].map((p) => `${p.x},${p.y}`).join(' ');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ground, devicePitch, width, height]);
+  }, [ground, smooth.pitch, width, height]);
 
   // ---- Chevrons drifting along the ground path ----
   const chevrons = useMemo(() => {
@@ -199,7 +220,7 @@ export function ARPathOverlay({
     }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ground, phase, devicePitch, width, height]);
+  }, [ground, phase, smooth.pitch, width, height]);
 
   if (!band) return null;
 

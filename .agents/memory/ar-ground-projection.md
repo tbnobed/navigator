@@ -12,3 +12,9 @@ description: Lessons from debugging the wayfinder AR floor-path overlay (invisib
 
 3. **Built-in demo building vs stored sites: id collisions.** The visitor building list merges static demo buildings with admin-created sites; the production site shares the demo's id (`studios`). Stored sites must come FIRST and colliding demo ids must be filtered, or visitors get routed on the demo's marked-up floorplan.
    **How to apply:** whenever composing the buildings list or adding new demo content, never let a static building shadow a stored site id.
+
+## Sensor smoothing (added Jul 16, 2026)
+Raw compass bearing + tilt jitter makes the floor band swing with tiny phone movements.
+Fix: ease displayed bearing/pitch toward live values on the existing chevron tick
+(shortest-arc for bearing, ~1.5° deadband, ~0.18/0.25 alphas). Also: draw only the
+current route segment (first leg) so the band ends at the next turn.
