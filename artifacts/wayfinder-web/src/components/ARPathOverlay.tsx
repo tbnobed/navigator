@@ -27,7 +27,7 @@ const MAX_AHEAD = 18;
 /** Densify the polyline so the perspective curve looks smooth. */
 const SEGMENT_STEP = 0.6;
 /** Path width on the floor (m) — rendered with perspective (wide near, thin far). */
-const PATH_WIDTH_M = 0.5;
+const PATH_WIDTH_M = 0.32;
 /** Distance between the animated floor chevrons (m). */
 const CHEVRON_SPACING = 2.2;
 /** Chevron size on the floor (m). */
@@ -196,7 +196,7 @@ export function ARPathOverlay({
   // Per-segment strokes with perspective width: wide near the feet, thin far
   // away. A constant-width polyline reads as a flat map, not floor paint.
   const widthAt = (forward: number) =>
-    Math.min(Math.max((PATH_WIDTH_M / Math.max(forward, 0.6)) * focal, 3), 46);
+    Math.min(Math.max((PATH_WIDTH_M / Math.max(forward, 0.6)) * focal, 3), 26);
 
   const segments = projected.slice(0, -1).map((a, i) => {
     const b = projected[i + 1];
@@ -255,7 +255,7 @@ export function ARPathOverlay({
       <circle
         cx={nearest.x}
         cy={nearest.y}
-        r={Math.min(widthAt(nearest.forward) * 0.7, 18)}
+        r={Math.min(widthAt(nearest.forward) * 0.7, 12)}
         style={{ fill: color }}
         opacity={0.9}
       />

@@ -158,13 +158,20 @@ function MiniMap({
   height: number;
 }) {
   if (!floor) return null;
+  // Zoom to a ~26m-wide window around the user (clamped to the floor edges)
+  // instead of squeezing the whole floor into the card — a full-floor
+  // overview is unreadable at this size.
+  const spanW = Math.min(26, floor.width);
+  const spanH = Math.min((spanW * height) / width, floor.height);
+  const vx = Math.min(Math.max(nav.position.x - spanW / 2, 0), floor.width - spanW);
+  const vy = Math.min(Math.max(nav.position.y - spanH / 2, 0), floor.height - spanH);
   return (
     <svg
       width={width}
       height={height}
-      viewBox={`0 0 ${floor.width} ${floor.height}`}
-      preserveAspectRatio="xMidYMid meet"
-      className="block"
+      viewBox={`${vx} ${vy} ${spanW} ${spanH}`}
+      preserveAspectRatio="xMidYMid slice"
+      className="block rounded-2xl"
     >
       {floor.image && (
         <image href={floor.image} width={floor.width} height={floor.height} opacity={0.9} />
@@ -268,6 +275,7 @@ function ActiveNavigation({
                 devicePitch={nav.devicePitch}
                 width={size.w}
                 height={size.h}
+                color="hsl(var(--primary))"
               />
             )}
             {cameraStatus !== 'active' && (

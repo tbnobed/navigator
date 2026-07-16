@@ -16,6 +16,12 @@ interface Props {
   height: number;
   /** When true, draw a long facing "beam" from the user (pre-walk calibration). */
   showFacingBeam?: boolean;
+  /**
+   * Zoom the view to a window this many meters wide centered on the user
+   * (clamped to the floor edges) instead of fitting the whole floor.
+   * Used by the AR mini-map so it stays readable at small sizes.
+   */
+  focusSpan?: number;
 }
 
 export function FloorPlanView({
@@ -29,11 +35,23 @@ export function FloorPlanView({
   width,
   height,
   showFacingBeam,
+  focusSpan,
 }: Props) {
   const colors = useColors();
-  const scale = Math.min(width / floor.width, height / floor.height);
-  const offsetX = (width - floor.width * scale) / 2;
-  const offsetY = (height - floor.height * scale) / 2;
+  const fitScale = Math.min(width / floor.width, height / floor.height);
+  // Focused mode: zoom to a window `focusSpan` meters wide around the user,
+  // clamped inside the floor. Never zoom OUT past the fitted view.
+  const scale = focusSpan ? Math.max(width / focusSpan, fitScale) : fitScale;
+  let offsetX = (width - floor.width * scale) / 2;
+  let offsetY = (height - floor.height * scale) / 2;
+  if (focusSpan && scale > fitScale) {
+    const clampOffset = (want: number, view: number, content: number) => {
+      if (content <= view) return (view - content) / 2;
+      return Math.min(Math.max(want, view - content), 0);
+    };
+    offsetX = clampOffset(width / 2 - userPosition.x * scale, width, floor.width * scale);
+    offsetY = clampOffset(height / 2 - userPosition.y * scale, height, floor.height * scale);
+  }
   const toScreen = (x: number, y: number) => ({ x: offsetX + x * scale, y: offsetY + y * scale });
 
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);

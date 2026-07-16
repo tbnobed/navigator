@@ -326,6 +326,7 @@ function NavigateContent({
               destinationNodeId={destination.id}
               width={SCREEN.width - 60}
               height={132}
+              focusSpan={30}
             />
           </View>
           <NavControls
