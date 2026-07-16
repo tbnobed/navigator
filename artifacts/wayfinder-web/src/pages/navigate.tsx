@@ -5,6 +5,7 @@ import { useBuildings, getBuildingIn } from "@/lib/sites";
 import { findShortestPath, buildRoute } from "@/lib/routing";
 import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
 import { useCameraStream } from "@/hooks/useCameraStream";
+import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -140,6 +141,65 @@ function MapView({
   );
 }
 
+/**
+ * Small fitted floor-plan card shown at the bottom of the AR view (IKEA-style):
+ * whole floor, route, live user position + heading, destination dot.
+ */
+function MiniMap({
+  floor,
+  nav,
+  destination,
+  width,
+  height,
+}: {
+  floor: any;
+  nav: any;
+  destination: any;
+  width: number;
+  height: number;
+}) {
+  if (!floor) return null;
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${floor.width} ${floor.height}`}
+      preserveAspectRatio="xMidYMid meet"
+      className="block"
+    >
+      {floor.image && (
+        <image href={floor.image} width={floor.width} height={floor.height} opacity={0.9} />
+      )}
+      <polyline
+        points={nav.leg.points.map((p: any) => `${p.x},${p.y}`).join(' ')}
+        fill="none"
+        style={{ stroke: 'hsl(var(--primary))' }}
+        strokeWidth={0.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.35}
+      />
+      <polyline
+        points={nav.upcomingPoints.map((p: any) => `${p.x},${p.y}`).join(' ')}
+        fill="none"
+        style={{ stroke: 'hsl(var(--primary))' }}
+        strokeWidth={1}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.9}
+      />
+      {destination && (
+        <circle cx={destination.x} cy={destination.y} r={1.4} style={{ fill: 'hsl(var(--primary))' }} stroke="white" strokeWidth={0.4} />
+      )}
+      <g transform={`translate(${nav.position.x}, ${nav.position.y}) rotate(${nav.facingFloorplanBearing})`}>
+        <polygon points="0,-2.6 -1.6,0.8 1.6,0.8" style={{ fill: 'hsl(var(--primary))' }} opacity={0.35} />
+        <circle r={1.1} fill="white" />
+        <circle r={0.6} style={{ fill: 'hsl(var(--primary))' }} />
+      </g>
+    </svg>
+  );
+}
+
 function ActiveNavigation({ 
   nav, 
   building, 
@@ -198,29 +258,18 @@ function ActiveNavigation({
               muted 
               playsInline 
             />
-            {/* Directional arrow for at-a-glance guidance (floor-painted
-                path is mobile-app only — browser sensors proved too
-                unreliable for it). */}
+            {/* Floor-painted path with drifting chevrons (mirrors the mobile
+                app's AR guidance). */}
             {cameraStatus === 'active' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div
-                  className="transition-transform duration-300 ease-out drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
-                  style={{ transform: `rotate(${nav.arrowRotation}deg)` }}
-                >
-                  <Navigation
-                    className="w-32 h-32 text-primary -rotate-45"
-                    fill="currentColor"
-                    strokeWidth={1}
-                  />
-                </div>
-                <p className="mt-6 text-white text-lg font-bold bg-black/50 backdrop-blur-md px-5 py-2 rounded-full border border-white/10">
-                  {Math.round(nav.arrowRotation) === 0 || Math.abs(nav.arrowRotation) < 20
-                    ? 'Straight ahead'
-                    : nav.arrowRotation > 0
-                      ? 'Turn right'
-                      : 'Turn left'}
-                </p>
-              </div>
+              <ARPathOverlay
+                points={nav.upcomingPoints}
+                userX={nav.position.x}
+                userY={nav.position.y}
+                facingBearing={nav.facingFloorplanBearing}
+                devicePitch={nav.devicePitch}
+                width={size.w}
+                height={size.h}
+              />
             )}
             {cameraStatus !== 'active' && (
               <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
@@ -279,6 +328,17 @@ function ActiveNavigation({
 
       {/* Bottom HUD */}
       <div className="relative z-10 mt-auto p-4 safe-area-pb pointer-events-none">
+        {viewMode === 'ar' && floor && (
+          <div className="bg-white/95 dark:bg-black/80 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-2 mb-3 pointer-events-auto flex justify-center">
+            <MiniMap
+              floor={floor}
+              nav={nav}
+              destination={destination}
+              width={Math.min(size.w - 48, 480)}
+              height={128}
+            />
+          </div>
+        )}
         <div className="glass-panel bg-black/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] shadow-2xl pointer-events-auto mb-2 text-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">

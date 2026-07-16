@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface Props {
   /** Upcoming route points in floorplan meters, starting at the user's position. */
@@ -28,6 +28,15 @@ const MAX_AHEAD = 18;
 const SEGMENT_STEP = 0.6;
 /** Path width on the floor (m) — rendered with perspective (wide near, thin far). */
 const PATH_WIDTH_M = 0.5;
+/** Distance between the animated floor chevrons (m). */
+const CHEVRON_SPACING = 2.2;
+/** Chevron size on the floor (m). */
+const CHEVRON_LEN = 0.42;
+const CHEVRON_HALF_W = 0.3;
+/** Chevron drift speed along the path (m/s). */
+const CHEVRON_SPEED = 1.1;
+/** Animation tick (ms). Kept coarse to limit re-renders. */
+const TICK_MS = 80;
 
 /**
  * Draws the upcoming route as a line "painted on the floor" over the camera
@@ -48,8 +57,17 @@ export function ARPathOverlay({
   height,
   color = '#FF9F1C',
 }: Props) {
-  const projected = useMemo(() => {
-    if (points.length < 2) return [];
+  // Animation phase 0..1 — chevrons drift forward one spacing per cycle.
+  const [phase, setPhase] = useState(0);
+  useEffect(() => {
+    const step = (CHEVRON_SPEED * (TICK_MS / 1000)) / CHEVRON_SPACING;
+    const id = setInterval(() => setPhase((p) => (p + step) % 1), TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  // ---- Ground-plane geometry (user-relative meters, with travelled dist) ----
+  const ground = useMemo(() => {
+    if (points.length < 2) return null;
 
     // Convert floorplan points into user-relative (forward, right) meters.
     const rad = (facingBearing * Math.PI) / 180;
@@ -63,7 +81,7 @@ export function ARPathOverlay({
     });
 
     // Densify segments so the projected curve bends smoothly.
-    const dense: { forward: number; right: number }[] = [];
+    const dense: { forward: number; right: number; dist: number }[] = [];
     let travelled = 0;
     outer: for (let i = 0; i < relative.length - 1; i++) {
       const a = relative[i];
@@ -72,65 +90,109 @@ export function ARPathOverlay({
       const steps = Math.max(Math.ceil(segLen / SEGMENT_STEP), 1);
       for (let s = 0; s <= steps; s++) {
         const t = s / steps;
+        if (s > 0) travelled += segLen / steps;
         dense.push({
           forward: a.forward + (b.forward - a.forward) * t,
           right: a.right + (b.right - a.right) * t,
+          dist: travelled,
         });
-        if (s > 0) travelled += segLen / steps;
         if (travelled > MAX_AHEAD) break outer;
       }
     }
+    if (dense.length < 2) return null;
+    return { dense, total: dense[dense.length - 1].dist };
+  }, [points, userX, userY, facingBearing]);
 
-    const focal = height * 0.9;
-    // Camera pitch below horizontal (radians). beta ≈ 90 means the phone is
-    // upright looking straight ahead (pitch 0); tilting toward the floor
-    // lowers beta. Clamp so extreme poses stay sane.
-    const betaDeg = devicePitch ?? 75; // default: slight natural downward tilt
-    // Clamp the usable pitch range: past ~50° downward (or ~30° upward) we
-    // hold the projection at the limit instead of following the phone, so the
-    // path slides off-screen gracefully rather than vanishing entirely when
-    // someone points the camera at their feet or the ceiling.
-    const pitchDown = Math.min(Math.max(((90 - betaDeg) * Math.PI) / 180, -0.5), 0.9);
-    const cosP = Math.cos(pitchDown);
-    const sinP = Math.sin(pitchDown);
-    const cx = width / 2;
-    const cy = height / 2;
-    // Discard points behind (or nearly at) the camera plane instead of
-    // clamping them into view — clamped behind-camera points would draw a
-    // false floor trace pointing the wrong way. Keep only the first
-    // contiguous in-front run so the drawn path stays continuous.
-    const NEAR_PLANE = 0.5;
+  // ---- Perspective projection of a ground point ----
+  // Camera pitch below horizontal (radians). beta ≈ 90 means the phone is
+  // upright looking straight ahead (pitch 0); tilting toward the floor
+  // lowers beta. Clamp so extreme poses stay sane and the path slides
+  // off-screen gracefully instead of vanishing. Keep the pitch rotation signs
+  // as-is (depth = f·cosP + h·sinP, vertical = f·sinP − h·cosP) — flipping
+  // them makes the path invisible at natural holding angles.
+  const focal = height * 0.9;
+  const betaDeg = devicePitch ?? 75; // default: slight natural downward tilt
+  const pitchDown = Math.min(Math.max(((90 - betaDeg) * Math.PI) / 180, -0.5), 0.9);
+  const cosP = Math.cos(pitchDown);
+  const sinP = Math.sin(pitchDown);
+  const cx = width / 2;
+  const cy = height / 2;
+  const NEAR_PLANE = 0.5;
+  const project = (forward: number, right: number) => {
+    const depth = forward * cosP + CAMERA_HEIGHT * sinP;
+    if (depth < NEAR_PLANE) return null;
+    const vertical = forward * sinP - CAMERA_HEIGHT * cosP; // negative = below view center
+    return {
+      x: cx + (right / depth) * focal,
+      y: cy - (vertical / depth) * focal,
+      forward,
+    };
+  };
+
+  const projected = useMemo(() => {
+    if (!ground) return [];
+    // Discard points behind the camera plane; keep only the first contiguous
+    // in-front run so the drawn path stays continuous.
     const result: { x: number; y: number; forward: number }[] = [];
     let started = false;
-    for (const p of dense) {
-      // Rotate the camera around its horizontal axis by the pitch. With the
-      // camera pitched DOWN by `pitchDown`, its forward axis is (cos p, -sin p)
-      // and its up axis is (sin p, cos p) in (forward, up) world coords; a
-      // floor point sits at (p.forward, -CAMERA_HEIGHT). Projecting onto those
-      // axes gives the tilted-camera coordinates. (The previous version had
-      // both pitch terms sign-flipped — tilting the phone at the floor pushed
-      // the path off the bottom of the screen instead of raising it into view,
-      // so at a natural holding angle nothing was ever visible.)
-      const depth = p.forward * cosP + CAMERA_HEIGHT * sinP;
-      const vertical = p.forward * sinP - CAMERA_HEIGHT * cosP; // negative = below view center
-      if (depth < NEAR_PLANE) {
-        if (started) break; // path went behind the camera — stop the trace
-        continue; // skip leading behind-camera points (e.g. facing away at start)
+    for (const p of ground.dense) {
+      const pt = project(p.forward, p.right);
+      if (!pt) {
+        if (started) break;
+        continue;
       }
       started = true;
-      // Same focal length on both axes — mismatched x/y focals squash the
-      // path horizontally and make it read as a shrunken map, not floor paint.
-      const x = cx + (p.right / depth) * focal;
-      const y = cy - (vertical / depth) * focal;
-      if (y > height + 120 || y < -60 || x < -width || x > width * 2) continue;
-      result.push({ x, y, forward: p.forward });
+      if (pt.y > height + 120 || pt.y < -60 || pt.x < -width || pt.x > width * 2) continue;
+      result.push(pt);
     }
     return result;
-  }, [points, userX, userY, facingBearing, devicePitch, width, height]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ground, devicePitch, width, height]);
+
+  // ---- Chevrons drifting along the ground path ----
+  const chevrons = useMemo(() => {
+    if (!ground) return [];
+    const { dense, total } = ground;
+    const at = (dist: number) => {
+      let i = 1;
+      while (i < dense.length - 1 && dense[i].dist < dist) i++;
+      const a = dense[i - 1];
+      const b = dense[i];
+      const span = Math.max(b.dist - a.dist, 1e-6);
+      const t = Math.min(Math.max((dist - a.dist) / span, 0), 1);
+      const forward = a.forward + (b.forward - a.forward) * t;
+      const right = a.right + (b.right - a.right) * t;
+      const len = Math.max(Math.hypot(b.forward - a.forward, b.right - a.right), 1e-6);
+      const df = (b.forward - a.forward) / len;
+      const dr = (b.right - a.right) / len;
+      return { forward, right, df, dr };
+    };
+
+    const out: { pts: string; w: number; opacity: number }[] = [];
+    for (let d = 1.2 + phase * CHEVRON_SPACING; d < Math.min(total, MAX_AHEAD); d += CHEVRON_SPACING) {
+      const p = at(d);
+      // Chevron in the ground plane: tip forward, two wings back-out.
+      const tip = project(p.forward + p.df * CHEVRON_LEN * 0.6, p.right + p.dr * CHEVRON_LEN * 0.6);
+      const left = project(
+        p.forward - p.df * CHEVRON_LEN * 0.4 - p.dr * CHEVRON_HALF_W,
+        p.right - p.dr * CHEVRON_LEN * 0.4 + p.df * CHEVRON_HALF_W,
+      );
+      const rightPt = project(
+        p.forward - p.df * CHEVRON_LEN * 0.4 + p.dr * CHEVRON_HALF_W,
+        p.right - p.dr * CHEVRON_LEN * 0.4 - p.df * CHEVRON_HALF_W,
+      );
+      if (!tip || !left || !rightPt) continue;
+      if (tip.y > height + 60 || tip.y < -40) continue;
+      const w = Math.min(Math.max((0.14 / Math.max(tip.forward, 0.8)) * focal, 2), 10);
+      // Fade with distance so far chevrons melt into the line.
+      const opacity = Math.min(Math.max(1.1 - tip.forward / MAX_AHEAD, 0.25), 0.95);
+      out.push({ pts: `${left.x},${left.y} ${tip.x},${tip.y} ${rightPt.x},${rightPt.y}`, w, opacity });
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ground, phase, devicePitch, width, height]);
 
   if (projected.length < 2) return null;
-
-  const focal = height * 0.9;
   // Per-segment strokes with perspective width: wide near the feet, thin far
   // away. A constant-width polyline reads as a flat map, not floor paint.
   const widthAt = (forward: number) =>
@@ -176,6 +238,18 @@ export function ARPathOverlay({
           strokeWidth={s.w}
           strokeLinecap="round"
           opacity={0.85}
+        />
+      ))}
+      {chevrons.map((c, i) => (
+        <polyline
+          key={`chev-${i}`}
+          points={c.pts}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth={c.w}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={c.opacity}
         />
       ))}
       <circle
