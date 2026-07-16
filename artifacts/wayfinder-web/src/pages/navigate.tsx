@@ -335,18 +335,19 @@ function ActiveNavigation({
 
       {/* Bottom HUD */}
       <div className="relative z-10 mt-auto p-4 safe-area-pb pointer-events-none">
-        {viewMode === 'ar' && floor && (
-          <div className="bg-white/95 dark:bg-black/80 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-2 mb-3 pointer-events-auto flex justify-center">
-            <MiniMap
-              floor={floor}
-              nav={nav}
-              destination={destination}
-              width={Math.min(size.w - 48, 480)}
-              height={128}
-            />
-          </div>
-        )}
         <div className="glass-panel bg-black/60 dark:bg-black/60 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] shadow-2xl pointer-events-auto mb-2 text-white">
+          {/* Mini map lives inside the same panel as the instructions. */}
+          {viewMode === 'ar' && floor && (
+            <div className="rounded-2xl overflow-hidden bg-white/95 mb-4 flex justify-center">
+              <MiniMap
+                floor={floor}
+                nav={nav}
+                destination={destination}
+                width={Math.min(size.w - 80, 440)}
+                height={120}
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-primary/20 text-primary rounded-full flex items-center justify-center">
