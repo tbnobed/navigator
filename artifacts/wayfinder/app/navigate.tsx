@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { PermissionCard } from '@/components/PermissionCard';
 import { FloorPlanView } from '@/components/FloorPlanView';
-import { DirectionArrow } from '@/components/DirectionArrow';
 import { InstructionCard } from '@/components/InstructionCard';
 import { ARPathOverlay } from '@/components/ARPathOverlay';
 import { getNode } from '@/constants/buildings';
@@ -311,11 +310,6 @@ function NavigateContent({
           width={SCREEN.width}
           height={SCREEN.height}
         />
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <View style={styles.arArrowWrap}>
-            <DirectionArrow rotation={nav.arrowRotation} size={72} />
-          </View>
-        </View>
         {backButton(true)}
         <View style={[styles.arTop, { paddingTop: insets.top + 60 }]}>
           <InstructionCard
@@ -325,15 +319,30 @@ function NavigateContent({
           />
         </View>
         {nav.wrongWay ? <WrongWayBanner top={insets.top + 130} /> : null}
-        <NavControls
-          insetBottom={insets.bottom}
-          viewMode={viewMode}
-          simulate={nav.simulate}
-          onToggleView={handleToggleView}
-          onToggleSimulate={handleToggleSimulate}
-          onCorrect={handleCorrect}
-          dark
-        />
+        <View style={styles.arBottom}>
+          <View style={[styles.arMiniMapCard, { backgroundColor: colors.card }]}>
+            <FloorPlanView
+              floor={floor}
+              nodes={floorNodes}
+              edges={floorEdges}
+              routePoints={nav.leg.points}
+              userPosition={nav.position}
+              userHeading={nav.facingFloorplanBearing}
+              destinationNodeId={destination.id}
+              width={SCREEN.width - 60}
+              height={132}
+            />
+          </View>
+          <NavControls
+            insetBottom={insets.bottom}
+            viewMode={viewMode}
+            simulate={nav.simulate}
+            onToggleView={handleToggleView}
+            onToggleSimulate={handleToggleSimulate}
+            onCorrect={handleCorrect}
+            dark
+          />
+        </View>
       </View>
     );
   }
@@ -477,7 +486,20 @@ const styles = StyleSheet.create({
   },
   doneButtonText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   arContainer: { flex: 1, backgroundColor: '#000' },
-  arArrowWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  arBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16 },
+  arMiniMapCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginBottom: 12,
+    opacity: 0.96,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
   arHint: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontFamily: 'Inter_500Medium' },
   arTop: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16 },
   backFab: {
