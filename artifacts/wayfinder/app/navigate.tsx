@@ -119,11 +119,6 @@ function NavigateContent({
     setViewMode(viewMode === 'map' ? 'ar' : 'map');
   };
 
-  const handleToggleSimulate = () => {
-    Haptics.selectionAsync();
-    nav.setSimulate(!nav.simulate);
-  };
-
   const handleCorrect = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     nav.skipToNextWaypoint();
@@ -336,9 +331,7 @@ function NavigateContent({
           <NavControls
             insetBottom={insets.bottom}
             viewMode={viewMode}
-            simulate={nav.simulate}
             onToggleView={handleToggleView}
-            onToggleSimulate={handleToggleSimulate}
             onCorrect={handleCorrect}
             dark
           />
@@ -378,9 +371,7 @@ function NavigateContent({
         <NavControls
           insetBottom={insets.bottom}
           viewMode={viewMode}
-          simulate={nav.simulate}
           onToggleView={handleToggleView}
-          onToggleSimulate={handleToggleSimulate}
           onCorrect={handleCorrect}
         />
       </View>
@@ -402,25 +393,19 @@ function WrongWayBanner({ top }: { top: number }) {
 function NavControls({
   insetBottom,
   viewMode,
-  simulate,
   onToggleView,
-  onToggleSimulate,
   onCorrect,
   dark,
 }: {
   insetBottom: number;
   viewMode: ViewMode;
-  simulate: boolean;
   onToggleView: () => void;
-  onToggleSimulate: () => void;
   onCorrect: () => void;
   dark?: boolean;
 }) {
   const colors = useColors();
   const chipBg = dark ? 'rgba(255,255,255,0.14)' : colors.secondary;
   const chipFg = dark ? '#FFFFFF' : colors.foreground;
-  const activeBg = colors.primary;
-  const activeFg = colors.primaryForeground;
 
   return (
     <View style={[styles.controls, { paddingBottom: insetBottom + 14 }]}>
@@ -431,16 +416,6 @@ function NavControls({
       >
         <Feather name={viewMode === 'map' ? 'camera' : 'map'} size={16} color={chipFg} />
         <Text style={[styles.chipText, { color: chipFg }]}>{viewMode === 'map' ? 'AR View' : 'Map View'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.chip, { backgroundColor: simulate ? activeBg : chipBg }]}
-        onPress={onToggleSimulate}
-        testID="toggle-simulate-button"
-      >
-        <Feather name="play" size={16} color={simulate ? activeFg : chipFg} />
-        <Text style={[styles.chipText, { color: simulate ? activeFg : chipFg }]}>
-          {simulate ? 'Simulating…' : 'Simulate walk'}
-        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.chip, { backgroundColor: chipBg }]}

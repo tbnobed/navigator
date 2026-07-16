@@ -8,5 +8,5 @@
   ],
   "theme_color": "#0f172a",
   "background_color": "#fdfcfa",
-  "display": "standalone"
+  "display": "fullscreen"
 }

@@ -7,7 +7,6 @@ import { useIndoorNavigation } from "@/hooks/useIndoorNavigation";
 import { useCameraStream } from "@/hooks/useCameraStream";
 import { ARPathOverlay } from "@/components/ARPathOverlay";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Map, Video, ArrowLeft, ArrowUp, Compass, Navigation, CheckCircle2, RotateCcw, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -377,17 +376,6 @@ function ActiveNavigation({
           </div>
         </div>
 
-        {/* Demo Controls */}
-        <div className="glass-panel bg-black/60 border border-white/10 p-4 rounded-3xl pointer-events-auto text-white">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-white/80">Simulate walking (Demo)</span>
-            <Switch 
-              checked={nav.simulate} 
-              onCheckedChange={nav.setSimulate} 
-              className="data-[state=checked]:bg-primary"
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -522,6 +510,16 @@ function CalibrationScreen({
   const [step, setStep] = useState<'intro' | 'calibrate'>('intro');
 
   const handlePermissions = async () => {
+    // Go fullscreen (hides the browser URL bar) — must happen inside this
+    // user gesture. iOS Safari doesn't support it on iPhone; there the
+    // "Add to Home Screen" install (standalone manifest) hides the bar.
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      }
+    } catch {
+      // Not supported (e.g. iPhone Safari) — continue normally.
+    }
     await nav.requestSensorPermissions();
     setStep('calibrate');
   };
