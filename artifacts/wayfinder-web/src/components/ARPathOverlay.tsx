@@ -23,7 +23,7 @@ interface Props {
 /** Assumed phone camera height above the floor (m). */
 const CAMERA_HEIGHT = 1.4;
 /** How far ahead the drawn path extends (m). */
-const MAX_AHEAD = 18;
+const MAX_AHEAD = 7;
 /** Densify the polyline so the perspective curve looks smooth. */
 const SEGMENT_STEP = 0.6;
 /** Half-width of the painted floor band (m) — total band ≈ 1.2m wide. */
@@ -74,8 +74,8 @@ export function ARPathOverlay({
         // Shortest-arc easing for the compass bearing (wraps at 360).
         let diff = ((t.bearing - s.bearing + 540) % 360) - 180;
         // Deadband: ignore tiny jitter entirely; ease through real turns.
-        if (Math.abs(diff) < 1.5) diff = 0;
-        const bearing = (s.bearing + diff * 0.18 + 360) % 360;
+        if (Math.abs(diff) < 3) diff = 0;
+        const bearing = (s.bearing + diff * 0.12 + 360) % 360;
         const pitch = s.pitch + (t.pitch - s.pitch) * 0.25;
         if (diff === 0 && Math.abs(t.pitch - s.pitch) < 0.2) return s;
         return { bearing, pitch };
